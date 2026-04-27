@@ -178,6 +178,38 @@ export const getCementDemandGrowth = (payload: {
   cutoff_year?: number;
 }) => api.post<GrowthData>("/data/cement-demand/growth", payload);
 
+
+// ── Construction Detail ──────────────────────────────────────────────────────
+export const getConstructionDetailMeta = () =>
+  cachedGet<{
+    regions: string[]; segments: string[];
+    new_ren: string[];  sources: string[]; years: number[];
+  }>("/construction-detail/meta");
+
+export const getConstructionDetailCountries = (
+  region?: string, segment?: string, new_ren?: string,
+) =>
+  cachedGet<{ countries: string[] }>(
+    "/construction-detail/countries",
+    { region, segment, new_ren },
+  );
+
+export const getConstructionDetailMekko = (payload: {
+  year: number; top_n?: number; show_other?: boolean;
+  segment?: string; new_ren?: string; source?: string;
+}) => api.post<{ data: import("./types").MekkoRow[]; year: number }>(
+  "/construction-detail/mekko", payload
+);
+
+export const getConstructionDetailGrowth = (payload: {
+  region: string; country?: string;
+  year_min?: number; year_max?: number;
+  segment?: string; new_ren?: string; source?: string;
+}) => api.post<import("./types").GrowthData>(
+  "/construction-detail/growth", payload
+);
+
+
 // ── Stock Prices ──────────────────────────────────────────────────────────────
 export const getStockPricesMeta = () =>
   cachedGet<{ years: number[]; countries: string[]; companies: string[] }>("/data/stock-prices/meta");

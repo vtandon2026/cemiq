@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     CIQ_FINANCIALS_NAME: str = "TBD_CIQ_Company financials_01282026_final.xlsx"
     STOCK_PRICES_NAME: str = "TBD_CIQ_Company financials_01282026_stock_prices.xlsx"
     US_CAPACITY_NAME: str = "US Cement capacity_with FULL lat long.xlsx"
+    CONSTRUCTION_DETAIL_NAME: str = "Construction_Detail.xlsx"
 
     # ── Think-cell ────────────────────────────────────────────────────────────
     THINKCELL_SERVER_URL: str = "http://127.0.0.1:8080/"
@@ -85,6 +86,10 @@ class Settings(BaseSettings):
     @property
     def us_capacity_path(self) -> Path:
         return self.DATA_DIR / self.US_CAPACITY_NAME
+
+    @property
+    def construction_detail_path(self) -> Path:
+        return self.DATA_DIR / self.CONSTRUCTION_DETAIL_NAME
 
     @property
     def allowed_origins_list(self) -> list[str]:

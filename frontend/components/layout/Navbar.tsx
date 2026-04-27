@@ -16,6 +16,12 @@ const NAV_ITEMS = [
     ],
   },
   {
+    label: "Construction Detail",
+    children: [
+      { label: "Construction Detail", href: "/construction-detail/construction-detail", desc: "Segment-level construction activity · Mekko & Growth view" },
+    ],
+  },
+  {
     label: "Supply & Production",
     children: [
       { label: "US Production Overview", href: "/supply-production/us-production-overview", desc: "Capacity by producer & state" },
