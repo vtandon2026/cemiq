@@ -51,13 +51,31 @@ export default function ChatPanel({
   dataScope = "flat_file",
   title = "Construct Lens",
 }: Props) {
-  const [messages, setMessages] = useState<ChatMessageType[]>([
-    { role: "assistant", content: "Ask me about the data or what you see in the chart." },
-  ]);
+  const storageKey = `chat_history_${title ?? "default"}`;
+
+  const [messages, setMessages] = useState<ChatMessageType[]>(() => {
+    if (typeof window === "undefined") return [
+      { role: "assistant", content: "Ask me about the data or what you see in the chart." },
+    ];
+    try {
+      const saved = sessionStorage.getItem(storageKey);
+      if (saved) return JSON.parse(saved) as ChatMessageType[];
+    } catch (_) {}
+    return [{ role: "assistant", content: "Ask me about the data or what you see in the chart." }];
+  });
   const [webEnabled, setWebEnabled] = useState(false);
   const [loading, setLoading]       = useState(false);
   const bottomRef    = useRef<HTMLDivElement>(null);
   const messagesRef  = useRef<HTMLDivElement>(null);
+
+  // Persist chat history to sessionStorage on every update
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify(messages));
+      } catch (_) {}
+    }
+  }, [messages, storageKey]);
 
   useEffect(() => {
     const el = messagesRef.current;
@@ -141,8 +159,30 @@ export default function ChatPanel({
             </span>
           </div>
 
-          {/* Right: web toggle */}
-          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          {/* Right: clear + web toggle */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {/* Clear chat */}
+            <button
+              onClick={() => {
+                const initial = [{ role: "assistant" as const, content: "Ask me about the data or what you see in the chart." }];
+                setMessages(initial);
+                try { sessionStorage.removeItem(storageKey); } catch (_) {}
+              }}
+              title="Clear chat"
+              style={{
+                background: "none", border: "none", cursor: "pointer",
+                color: "#cbd5e1", padding: 2, display: "flex", alignItems: "center",
+                transition: "color 0.15s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#94a3b8")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#cbd5e1")}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+              </svg>
+            </button>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
               stroke={webEnabled ? "var(--bain-red)" : "#cbd5e1"}
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
