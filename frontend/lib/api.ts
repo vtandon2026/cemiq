@@ -209,6 +209,28 @@ export const getConstructionDetailGrowth = (payload: {
   "/construction-detail/growth", payload
 );
 
+// ── World View Map ───────────────────────────────────────────────────────────
+export const getWorldViewMeta = () =>
+  cachedGet<{
+    regions: string[]; segments: string[];
+    new_ren: string[]; sources: string[]; years: number[];
+  }>("/world-view/meta");
+ 
+export const getWorldViewChoropleth = (payload: {
+  year: number; segment?: string; new_ren?: string;
+  source?: string; metric?: string;
+}) => api.post<{
+  data: { country: string; region: string; value: number; yoy_growth: number | null }[];
+  year: number; metric: string;
+}>("/world-view/choropleth", payload);
+ 
+export const getWorldViewBubble = (payload: {
+  year: number; segment?: string; new_ren?: string;
+  source?: string; top_n?: number;
+}) => api.post<{
+  data: { country: string; region: string; value: number; yoy_growth: number | null; rank: number }[];
+  year: number;
+}>("/world-view/bubble", payload);
 
 // ── Stock Prices ──────────────────────────────────────────────────────────────
 export const getStockPricesMeta = () =>
