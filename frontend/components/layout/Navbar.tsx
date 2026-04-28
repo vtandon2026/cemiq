@@ -45,6 +45,16 @@ const NAV_ITEMS = [
       { label: "Analyst Section", href: "/stock-valuation/analyst-section", desc: "Analyst benchmarking" },
     ],
   },
+  {
+  label: "Cement Specific",
+  children: [
+    {
+      label: "Capacity Concentration",
+      href:  "/cement-specific/capacity-concentration",
+      desc:  "Top 3 share of local production capacity by country",
+    },
+  ],
+},
 ];
 
 export default function Navbar() {

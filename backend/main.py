@@ -37,6 +37,7 @@ async def _preload_all():
     from services.global_cement_loader import get_global_cement_df
     from services.stock_price_loader   import get_stock_prices_df
     from services.ciq_loader           import get_ciq_long_df
+    from services.cement_capacity_loader import get_gem_df
 
     loaders = [
         ("CIQ Financials",  get_ciq_long_df),
@@ -45,6 +46,7 @@ async def _preload_all():
         ("GeoMap",          get_geomap_df),
         ("Global Cement",   get_global_cement_df),
         ("Stock Prices",    get_stock_prices_df),
+        ("GEM Tracker", get_gem_df),
     ]
 
     async def _warm(name: str, fn):
@@ -95,7 +97,7 @@ app.add_middleware(
 
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-from routers import data, export, chat, deck, exec_summary, construction_detail, world_view
+from routers import data, export, chat, deck, exec_summary, construction_detail, cement_specific, world_view
 
 app.include_router(data.router,         prefix="/data")
 app.include_router(export.router,       prefix="/export")
@@ -103,6 +105,8 @@ app.include_router(chat.router,         prefix="/chat")
 app.include_router(deck.router,         prefix="/deck")
 app.include_router(exec_summary.router, prefix="/exec-summary")
 app.include_router(construction_detail.router, prefix="/construction-detail")
+app.include_router(cement_specific.router, prefix="/cement-specific")
+
 app.include_router(world_view.router,         prefix="/world-view")
 
 
