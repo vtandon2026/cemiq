@@ -302,12 +302,22 @@ export default function ConstructionDetailPage() {
           <div style={{ flex: 1, minWidth: 0 }}>
 
             {/* Toolbar */}
-            <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
               <SegmentedControl
                 options={["Mekko View", "Growth View"]}
                 value={viewMode}
                 onChange={setViewMode}
               />
+              <div style={{ marginLeft: "auto" }}>
+                <ChartActions
+                  onCsv={downloadCsv}
+                  csvDisabled={csvDisabled}
+                  showPpt
+                  onPpt={exportPpt}
+                  pptDisabled={csvDisabled}
+                  pptLoading={exporting}
+                />
+              </div>
             </div>
 
             {/* Chart card */}
@@ -316,7 +326,7 @@ export default function ConstructionDetailPage() {
               borderRadius: 10, padding: 16,
               boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
             }}>
-              {/* Chart title + actions */}
+              {/* Chart title */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", fontFamily: F }}>
@@ -332,14 +342,6 @@ export default function ConstructionDetailPage() {
                     }
                   </div>
                 </div>
-                <ChartActions
-                  onCsv={downloadCsv}
-                  csvDisabled={csvDisabled}
-                  showPpt
-                  onPpt={exportPpt}
-                  pptDisabled={csvDisabled}
-                  pptLoading={exporting}
-                />
               </div>
 
               {loading ? (
