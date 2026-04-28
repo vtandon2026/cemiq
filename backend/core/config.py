@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     STOCK_PRICES_NAME: str = "TBD_CIQ_Company financials_01282026_stock_prices.xlsx"
     US_CAPACITY_NAME: str = "US Cement capacity_with FULL lat long.xlsx"
     CONSTRUCTION_DETAIL_NAME: str = "Construction_Detail.xlsx"
+    CEMENT_CONCENTRATION_NAME: str = "Global-Cement-and-Concrete-Tracker_July-2025.xlsx"
 
     # ── Think-cell ────────────────────────────────────────────────────────────
     THINKCELL_SERVER_URL: str = "http://127.0.0.1:8080/"
@@ -42,6 +43,7 @@ class Settings(BaseSettings):
     THINKCELL_TEMPLATE_GROWTH_S2: Path = Path("./data/templates/template_construction_overall.pptx")
     THINKCELL_TEMPLATE_GROWTH_S3: Path = Path("./data/templates/template_building_sales.pptx")
     THINKCELL_TEMPLATE_GROWTH_S4: Path = Path("./data/templates/template_cement_sales.pptx")
+    THINKCELL_TEMPLATE_MEKKO_RMS: Path = Path("./data/templates/thinkcell_template_mekko_rms.pptx")
 
     # ── Think-cell element names ───────────────────────────────────────────────
     TC_ELEM_MEKKO: str = "MekkoChart"
