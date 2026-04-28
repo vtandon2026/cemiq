@@ -19,7 +19,9 @@ const NAV_ITEMS = [
     label: "Construction Detail",
     children: [
       { label: "Construction Detail", href: "/construction-detail/construction-detail", desc: "Segment-level construction activity · Mekko & Growth view" },
+      { label: "World View Map", href: "/construction-detail/world-view-map", desc: "Global construction activity · Choropleth & Bubble map" },
     ],
+
   },
   {
     label: "Supply & Production",
