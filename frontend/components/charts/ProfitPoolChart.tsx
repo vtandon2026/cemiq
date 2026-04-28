@@ -73,7 +73,7 @@ export default function ProfitPoolChart({ data, height = 620 }: Props) {
               `<div style="font-weight:700;margin-bottom:5px;color:#0f172a">${row.Category}</div>` +
               `<div style="display:flex;justify-content:space-between;gap:16px;margin-top:3px"><span style="color:#64748b">Revenue</span><span style="font-weight:600">$${row.Revenue.toLocaleString()} mn</span></div>` +
               `<div style="display:flex;justify-content:space-between;gap:16px;margin-top:3px"><span style="color:#64748b">EBITDA</span><span style="font-weight:600">$${row.EBITDA.toLocaleString()} mn</span></div>` +
-              `<div style="display:flex;justify-content:space-between;gap:16px;margin-top:3px"><span style="color:#64748b">Margin</span><span style="font-weight:700;color:#E60000">${marginPct}%</span></div>` +
+              `<div style="display:flex;justify-content:space-between;gap:16px;margin-top:3px"><span style="color:#64748b">EBITDA Margin</span><span style="font-weight:700;color:#E60000">${marginPct}%</span></div>` +
               `<div style="display:flex;justify-content:space-between;gap:16px;margin-top:3px"><span style="color:#64748b">Rev. share</span><span style="font-weight:600">${(row.width * 100).toFixed(1)}%</span></div>`;
             if (isOther && row.constituent_categories?.length) {
               html += `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #f1f5f9;font-size:11px;color:#94a3b8">Includes: ${row.constituent_categories.join(", ")}</div>`;

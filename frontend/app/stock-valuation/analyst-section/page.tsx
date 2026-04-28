@@ -1,11 +1,19 @@
 // PATH: frontend/app/stock-valuation/analyst-section/page.tsx
-import Banner from "@/components/layout/Banner";
+import PageHeader from "@/components/layout/PageHeader";
 
 export default function AnalystSectionPage() {
   return (
     <div>
-      <Banner />
-      <div className="mt-6 text-xl font-semibold text-gray-500">
+      <PageHeader
+        title="Analyst Section"
+        subtitle="Stock & Valuation · Analyst coverage and recommendations"
+      />
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        height: 200, color: "#94a3b8", fontSize: 13,
+        border: "1px dashed #e2e8f0", borderRadius: 10,
+        fontFamily: "Arial, Helvetica, sans-serif",
+      }}>
         Analyst Section — To be updated soon.
       </div>
     </div>
