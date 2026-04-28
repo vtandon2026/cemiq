@@ -53,16 +53,23 @@ export default function ChatPanel({
 }: Props) {
   const storageKey = `chat_history_${title ?? "default"}`;
 
-  const [messages, setMessages] = useState<ChatMessageType[]>(() => {
-    if (typeof window === "undefined") return [
-      { role: "assistant", content: "Ask me about the data or what you see in the chart." },
-    ];
+  const [messages, setMessages] = useState<ChatMessageType[]>([
+    { role: "assistant", content: "Ask me about the data or what you see in the chart." },
+  ]);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Load from sessionStorage after mount (avoids SSR hydration mismatch)
+  useEffect(() => {
     try {
       const saved = sessionStorage.getItem(storageKey);
-      if (saved) return JSON.parse(saved) as ChatMessageType[];
+      if (saved) {
+        const parsed = JSON.parse(saved) as ChatMessageType[];
+        if (parsed.length > 0) setMessages(parsed);
+      }
     } catch (_) {}
-    return [{ role: "assistant", content: "Ask me about the data or what you see in the chart." }];
-  });
+    setHydrated(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
   const [webEnabled, setWebEnabled] = useState(false);
   const [loading, setLoading]       = useState(false);
   const bottomRef    = useRef<HTMLDivElement>(null);
@@ -136,32 +143,30 @@ export default function ChatPanel({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "12px 16px",
+          padding: "8px 12px",
           borderBottom: "1px solid #f1f5f9",
           background: "#ffffff",
           flexShrink: 0,
         }}>
-          {/* Left: brand */}
-          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            {/* Animated status dot */}
+          {/* Left: dot + title */}
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <span style={{
-              width: 9, height: 9, borderRadius: "50%",
-              background: "var(--bain-red)",
-              display: "inline-block",
-              boxShadow: "0 0 0 3px rgba(230,0,0,0.15)",
-              animation: "chat-bounce 2.5s ease-in-out infinite",
+              width: 7, height: 7, borderRadius: "50%",
+              background: "var(--bain-red)", display: "inline-block",
+              boxShadow: "0 0 0 2px rgba(230,0,0,0.2)",
+              flexShrink: 0,
             }} />
             <span style={{
-              fontSize: 14, fontWeight: 800,
-              color: "#0f172a", letterSpacing: "-0.2px",
+              fontSize: 12, fontWeight: 700, color: "#1e293b",
+              fontFamily: "Arial, Helvetica, sans-serif",
             }}>
               {title}
             </span>
           </div>
 
           {/* Right: clear + web toggle */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {/* Clear chat */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Clear */}
             <button
               onClick={() => {
                 const initial = [{ role: "assistant" as const, content: "Ask me about the data or what you see in the chart." }];
@@ -171,55 +176,48 @@ export default function ChatPanel({
               title="Clear chat"
               style={{
                 background: "none", border: "none", cursor: "pointer",
-                color: "#cbd5e1", padding: 2, display: "flex", alignItems: "center",
+                color: "#cbd5e1", padding: 0,
+                display: "flex", alignItems: "center",
                 transition: "color 0.15s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#94a3b8")}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#E60000")}
               onMouseLeave={(e) => (e.currentTarget.style.color = "#cbd5e1")}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
                 <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
               </svg>
             </button>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-              stroke={webEnabled ? "var(--bain-red)" : "#cbd5e1"}
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              style={{ transition: "stroke 0.2s" }}>
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="2" y1="12" x2="22" y2="12"/>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
-            <span style={{
-              fontSize: 11, fontWeight: 600,
-              color: webEnabled ? "var(--bain-red)" : "#94a3b8",
-              transition: "color 0.2s",
-            }}>
-              Web
-            </span>
-            <div
-              onClick={() => setWebEnabled(!webEnabled)}
-              style={{
-                position: "relative",
-                width: 34, height: 19,
-                borderRadius: 20,
-                background: webEnabled ? "var(--bain-red)" : "#e2e8f0",
-                cursor: "pointer",
-                transition: "background 0.2s",
-                flexShrink: 0,
-              }}
-            >
+
+            {/* Divider */}
+            <div style={{ width: 1, height: 12, background: "#e2e8f0" }} />
+
+            {/* Web toggle */}
+            <div style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}
+              onClick={() => setWebEnabled(!webEnabled)}>
               <span style={{
-                position: "absolute",
-                top: 2.5,
-                left: webEnabled ? 15 : 2.5,
-                width: 14, height: 14,
-                borderRadius: "50%",
-                background: "#ffffff",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
-                transition: "left 0.2s",
-              }} />
+                fontSize: 10, fontWeight: 600,
+                color: webEnabled ? "var(--bain-red)" : "#94a3b8",
+                fontFamily: "Arial, Helvetica, sans-serif",
+                transition: "color 0.2s",
+                userSelect: "none" as const,
+              }}>Web</span>
+              <div style={{
+                position: "relative", width: 28, height: 16, borderRadius: 20,
+                background: webEnabled ? "var(--bain-red)" : "#e2e8f0",
+                transition: "background 0.2s", flexShrink: 0,
+              }}>
+                <span style={{
+                  position: "absolute", top: 2,
+                  left: webEnabled ? 12 : 2,
+                  width: 12, height: 12, borderRadius: "50%",
+                  background: "#ffffff",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.18)",
+                  transition: "left 0.2s",
+                }} />
+              </div>
             </div>
           </div>
         </div>
