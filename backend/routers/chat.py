@@ -38,6 +38,10 @@ def _get_sheets(data_scope: str) -> dict:
         from services.stock_price_loader import get_stock_prices_df
         df = get_stock_prices_df()
         return {"Data (full)": df, "Data (current view)": df}
+    if scope == "construction_detail":
+        from services.construction_detail_loader import get_construction_detail_df
+        df = get_construction_detail_df()
+        return {"Data (full)": df, "Data (current view)": df}
 
     from services.flat_file_loader import get_flat_file_df
     df = get_flat_file_df()
@@ -61,7 +65,24 @@ def chat(req: ChatRequest):
         df_current = list(sheets.values())[-1]
 
         profile       = build_scope_profile(df_full, df_current)
-        system_prompt = make_system_prompt(profile, req.chart_context, req.current_filters)
+
+        # Trim chart_context to avoid token limit (max ~2000 chars)
+        import json as _json
+        ctx = req.chart_context or {}
+        ctx_str = _json.dumps(ctx, default=str)
+        if len(ctx_str) > 2000:
+            # Keep key fields, truncate large lists
+            ctx_trimmed = {k: v for k, v in ctx.items() if k not in ("top_15_countries", "top_15_by_value", "cagr_table")}
+            # Add truncated versions
+            for key in ("top_15_countries", "top_15_by_value"):
+                if key in ctx:
+                    ctx_trimmed[key] = ctx[key][:10]
+            if "cagr_table" in ctx:
+                ct = ctx["cagr_table"]
+                ctx_trimmed["cagr_table"] = {**ct, "rows": ct.get("rows", [])[:5]}
+            ctx = ctx_trimmed
+
+        system_prompt = make_system_prompt(profile, ctx, req.current_filters)
 
         messages = [{"role": "system", "content": system_prompt}]
         messages += [{"role": m.role, "content": m.content} for m in req.messages]
