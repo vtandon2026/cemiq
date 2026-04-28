@@ -4,19 +4,19 @@
 import { useEffect, useRef } from "react";
 
 interface BubbleRow {
-  country: string;
-  region: string;
-  value: number;
+  country:    string;
+  region:     string;
+  value:      number;
   yoy_growth: number | null;
-  rank: number;
+  rank:       number;
 }
 
 interface Props {
-  data: BubbleRow[];
-  year: number;
+  data:    BubbleRow[];
+  year:    number;
   height?: number;
   cagrStart?: number;  // start year for CAGR label, default "Forecast"
-  cagrEnd?: number;
+  cagrEnd?:   number;
 }
 
 // Country name → [lat, lon] centroid — comprehensive list
@@ -78,7 +78,7 @@ const COUNTRY_COORDS: Record<string, [number, number]> = {
 function cagrToColor(cagr: number | null): string {
   if (cagr == null) return "#94a3b8";
   // Scale: <0 = red, 0–5% = yellow-green, >5% = deep green
-  if (cagr < 0) return `#dc2626`;
+  if (cagr < 0)    return `#dc2626`;
   if (cagr < 0.02) return `#f97316`;
   if (cagr < 0.04) return `#eab308`;
   if (cagr < 0.06) return `#84cc16`;
@@ -91,11 +91,11 @@ function cagrToColorScale(cagr: number | null, minCagr: number, maxCagr: number)
   const t = maxCagr === minCagr ? 0.5 : (cagr - minCagr) / (maxCagr - minCagr);
   // Red → Orange → Yellow → Light green → Dark green
   const stops = [
-    [220, 38, 38],  // red
-    [249, 115, 22],  // orange
-    [234, 179, 8],  // yellow
-    [132, 204, 22],  // lime
-    [21, 128, 61],  // dark green
+    [220,  38,  38],  // red
+    [249, 115,  22],  // orange
+    [234, 179,   8],  // yellow
+    [132, 204,  22],  // lime
+    [ 21, 128,  61],  // dark green
   ];
   const i = Math.min(Math.floor(t * (stops.length - 1)), stops.length - 2);
   const f = t * (stops.length - 1) - i;
@@ -107,9 +107,9 @@ function cagrToColorScale(cagr: number | null, minCagr: number, maxCagr: number)
 
 export default function WorldBubbleMap({ data, year, height = 520 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<unknown>(null);
-  const layerRef = useRef<unknown>(null);
-  const mountedRef = useRef(true);
+  const mapRef       = useRef<unknown>(null);
+  const layerRef     = useRef<unknown>(null);
+  const mountedRef   = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -123,6 +123,10 @@ export default function WorldBubbleMap({ data, year, height = 520 }: Props) {
     (async () => {
       const L = (await import("leaflet")).default;
       await import("leaflet/dist/leaflet.css");
+      const style = document.createElement("style");
+      style.textContent = `.leaflet-tooltip { padding: 0 !important; background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; }
+.leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before, .leaflet-tooltip-left:before, .leaflet-tooltip-right:before { display: none !important; }`;
+      document.head.appendChild(style);
       if (cancelled || !containerRef.current) return;
 
       const map = L.map(containerRef.current, {
@@ -153,61 +157,65 @@ export default function WorldBubbleMap({ data, year, height = 520 }: Props) {
     if (!data.length) return;
     const timer = setTimeout(() => drawBubbles(), 300);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, year]);
 
   function drawBubbles() {
     if (!mapRef.current || !layerRef.current || !mountedRef.current) return;
     (async () => {
-      const L = (await import("leaflet")).default;
+      const L  = (await import("leaflet")).default;
       const lg = layerRef.current as ReturnType<typeof L.layerGroup>;
       lg.clearLayers();
 
       if (!data.length) return;
 
-      const values = data.map((d) => d.value).filter((v) => v > 0);
-      const maxVal = Math.max(...values);
-      const minVal = Math.min(...values);
-      const cagrs = data.map((d) => d.yoy_growth).filter((v) => v != null) as number[];
-      const minCagr = cagrs.length ? Math.min(...cagrs) : 0;
-      const maxCagr = cagrs.length ? Math.max(...cagrs) : 0.1;
+      const values   = data.map((d) => d.value).filter((v) => v > 0);
+      const maxVal   = Math.max(...values);
+      const minVal   = Math.min(...values);
+      const cagrs    = data.map((d) => d.yoy_growth).filter((v) => v != null) as number[];
+      const minCagr  = cagrs.length ? Math.min(...cagrs) : 0;
+      const maxCagr  = cagrs.length ? Math.max(...cagrs) : 0.1;
 
       // Scale bubble radius: 60k–800k meters
       const scaleR = (v: number) => {
-        if (maxVal === minVal) return 300000;
-        return 100000 + ((v - minVal) / (maxVal - minVal)) * 900000;
+        if (maxVal === minVal) return 500000;
+        return 150000 + ((v - minVal) / (maxVal - minVal)) * 1400000;
       };
 
       data.forEach((row) => {
         const coords = COUNTRY_COORDS[row.country];
         if (!coords) return;
 
-        const color = cagrToColorScale(row.yoy_growth, minCagr, maxCagr);
+        const color  = cagrToColorScale(row.yoy_growth, minCagr, maxCagr);
         const radius = scaleR(row.value);
 
         const circle = L.circle(coords, {
           radius,
-          fillColor: color,
+          fillColor:   color,
           fillOpacity: 0.75,
-          color: "rgba(255,255,255,0.6)",
-          weight: 1,
+          color:       "rgba(255,255,255,0.6)",
+          weight:      1,
         });
 
         circle.bindTooltip(
-          `<div style="font-family:Arial,Helvetica,sans-serif;min-width:180px">
-            <div style="font-weight:700;font-size:13px;color:#0f172a;margin-bottom:4px">${row.country}</div>
-            <div style="font-size:11px;color:#64748b;margin-bottom:6px">${row.region}</div>
-            <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-bottom:3px">
-              <span style="color:#64748b">Market Value</span>
-              <span style="font-weight:600">$${row.value.toFixed(1)}B</span>
+          `<div style="font-family:Arial,Helvetica,sans-serif;min-width:190px;background:#ffffff;border:0.5px solid #e2e8f0;border-radius:10px;padding:12px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">
+              <div style="font-size:13px;font-weight:600;color:#0f172a">${row.country}</div>
+              <div style="font-size:11px;color:#94a3b8;font-weight:500">#${row.rank}</div>
             </div>
-            <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px">
-              <span style="color:#64748b">Wtd Avg CAGR</span>
-              <span style="font-weight:700;color:${color}">${row.yoy_growth != null ? (row.yoy_growth * 100).toFixed(1) + "%" : "N/A"}</span>
+            <div style="font-size:11px;color:#64748b;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+              <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>
+              ${row.region}
             </div>
-            <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-top:3px">
-              <span style="color:#64748b">Rank</span>
-              <span style="font-weight:600">#${row.rank}</span>
+            <div style="border-top:0.5px solid #f1f5f9;padding-top:8px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px">
+                <span style="font-size:11px;color:#64748b">Market value</span>
+                <span style="font-size:12px;font-weight:600;color:#0f172a">$${row.value.toFixed(1)}B</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px">
+                <span style="font-size:11px;color:#64748b">Wtd avg CAGR</span>
+                <span style="font-size:12px;font-weight:600;color:${row.yoy_growth != null && row.yoy_growth >= 0 ? '#3B6D11' : '#A32D2D'}">${row.yoy_growth != null ? (row.yoy_growth >= 0 ? '+' : '') + (row.yoy_growth * 100).toFixed(1) + '%' : 'N/A'}</span>
+              </div>
             </div>
           </div>`,
           { sticky: false, direction: "top", offset: [0, -8] }
@@ -230,20 +238,20 @@ export default function WorldBubbleMap({ data, year, height = 520 }: Props) {
       // Legend
       const map = mapRef.current as ReturnType<typeof L.map>;
       const legend = (L.control as any)({ position: "topright" });
-      legend.onAdd = function () {
+      legend.onAdd = function() {
         const div = L.DomUtil.create("div");
         div.innerHTML = `
           <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-family:Arial,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.1);min-width:160px">
             <div style="font-size:11px;font-weight:700;color:#1e293b;margin-bottom:6px">Weighted Average<br>CAGR ${year}–${year + 4}</div>
             <div style="height:10px;width:130px;background:linear-gradient(to right,#dc2626,#f97316,#eab308,#84cc16,#15803d);border-radius:4px;margin-bottom:4px"></div>
             <div style="display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-bottom:12px">
-              <span>${(minCagr * 100).toFixed(1)}%</span>
-              <span>${(maxCagr * 100).toFixed(1)}%</span>
+              <span>${(minCagr*100).toFixed(1)}%</span>
+              <span>${(maxCagr*100).toFixed(1)}%</span>
             </div>
             <div style="font-size:11px;font-weight:700;color:#1e293b;margin-bottom:6px">Current market value<br>(in $B)</div>
-            ${[1, Math.round(maxVal * 0.25), Math.round(maxVal * 0.5), Math.round(maxVal * 0.75), Math.round(maxVal)].map((v, i) => `
+            ${[1, Math.round(maxVal*0.25), Math.round(maxVal*0.5), Math.round(maxVal*0.75), Math.round(maxVal)].map((v, i) => `
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-                <div style="width:${6 + i * 6}px;height:${6 + i * 6}px;border-radius:50%;background:#94a3b8;border:1px solid #e2e8f0;flex-shrink:0"></div>
+                <div style="width:${6 + i*6}px;height:${6 + i*6}px;border-radius:50%;background:#94a3b8;border:1px solid #e2e8f0;flex-shrink:0"></div>
                 <span style="font-size:10px;color:#64748b">${v.toLocaleString()}</span>
               </div>`).join("")}
           </div>`;

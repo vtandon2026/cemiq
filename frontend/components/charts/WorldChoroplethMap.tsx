@@ -3,53 +3,79 @@
 import { useEffect, useRef } from "react";
 
 interface ChoroplethRow {
-  country:    string;
-  region:     string;
-  value:      number;
+  country: string;
+  region: string;
+  value: number;
   yoy_growth: number | null;
 }
 
 interface Props {
-  data:    ChoroplethRow[];
-  metric:  string;
-  year:    number;
+  data: ChoroplethRow[];
+  metric: string;
+  year: number;
   height?: number;
 }
 
 // Comprehensive alias map: GeoJSON name → our data name
 const GEOJSON_TO_DATA: Record<string, string> = {
-  "United States of America":      "United States",
-  "USA":                           "United States",
-  "Russian Federation":            "Russia",
-  "Korea, Republic of":            "South Korea",
-  "Republic of Korea":             "South Korea",
-  "Iran (Islamic Republic of)":    "Iran",
-  "Czechia":                       "Czech Republic",
-  "Czech Rep.":                    "Czech Republic",
-  "Taiwan, Province of China":     "Taiwan",
-  "Bosnia and Herz.":              "Bosnia and Herzegovina",
-  "Dominican Rep.":                "Dominican Republic",
-  "UAE":                           "United Arab Emirates",
-  "U.A.E.":                        "United Arab Emirates",
-  "UK":                            "United Kingdom",
-  "Britain":                       "United Kingdom",
-  "Congo":                         "Republic of Congo",
-  "Dem. Rep. Congo":               "Democratic Republic of Congo",
-  "S. Sudan":                      "South Sudan",
-  "Central African Rep.":          "Central African Republic",
-  "Eq. Guinea":                    "Equatorial Guinea",
-  "W. Sahara":                     "Western Sahara",
-  "Solomon Is.":                   "Solomon Islands",
-  "Lao PDR":                       "Laos",
-  "Viet Nam":                      "Vietnam",
-  "Syrian Arab Republic":          "Syria",
-  "Palestine":                     "Palestinian Territory",
-  "Brunei Darussalam":             "Brunei",
-  "North Macedonia":               "Macedonia",
-  "Republic of Serbia":            "Serbia",
-  "Côte d'Ivoire":                 "Ivory Coast",
-  "eSwatini":                      "Swaziland",
+  "United States of America": "United States",
+  "USA": "United States",
+  "Russian Federation": "Russia",
+  "Korea, Republic of": "South Korea",
+  "Republic of Korea": "South Korea",
+  "Iran (Islamic Republic of)": "Iran",
+  "Czechia": "Czech Republic",
+  "Czech Rep.": "Czech Republic",
+  "Taiwan, Province of China": "Taiwan",
+  "Bosnia and Herz.": "Bosnia and Herzegovina",
+  "Dominican Rep.": "Dominican Republic",
+  "UAE": "United Arab Emirates",
+  "U.A.E.": "United Arab Emirates",
+  "UK": "United Kingdom",
+  "Britain": "United Kingdom",
+  "Congo": "Republic of Congo",
+  "Dem. Rep. Congo": "Democratic Republic of Congo",
+  "S. Sudan": "South Sudan",
+  "Central African Rep.": "Central African Republic",
+  "Eq. Guinea": "Equatorial Guinea",
+  "W. Sahara": "Western Sahara",
+  "Solomon Is.": "Solomon Islands",
+  "Lao PDR": "Laos",
+  "Viet Nam": "Vietnam",
+  "Syrian Arab Republic": "Syria",
+  "Palestine": "Palestinian Territory",
+  "Brunei Darussalam": "Brunei",
+  "North Macedonia": "Macedonia",
+  "Republic of Serbia": "Serbia",
+  "Côte d'Ivoire": "Ivory Coast",
+  "eSwatini": "Swaziland",
 };
+
+// Region → color (matches map fill colors)
+const REGION_COLORS: Record<string, string> = {
+  "north america": "#b04a32",
+  "europe": "#e8a05a",
+  "asia pacific": "#c8d460",
+  "russia": "#e8c35a",
+  "eastern europe": "#e8c35a",
+  "middle east": "#2a9d8f",
+  "middle east and africa": "#2a9d8f",
+  "africa": "#2a9d8f",
+  "south and central america": "#4a9a5a",
+  "latin america": "#4a9a5a",
+  "south america": "#4a9a5a",
+  "central america": "#4a9a5a",
+  "oceania": "#c8d460",
+};
+
+function regionToColor(region: string): string {
+  const key = region.toLowerCase().trim();
+  if (REGION_COLORS[key]) return REGION_COLORS[key];
+  for (const [k, v] of Object.entries(REGION_COLORS)) {
+    if (key.includes(k) || k.includes(key)) return v;
+  }
+  return "#94a3b8";
+}
 
 function resolveCountryName(geoName: string, lookup: Map<string, ChoroplethRow>): ChoroplethRow | undefined {
   // 1. Direct match
@@ -78,15 +104,15 @@ function buildLookup(data: ChoroplethRow[]): Map<string, ChoroplethRow> {
 
 function interpolateColor(t: number): string {
   const stops = [
-    [190,  75,  50],  // dark orange-red
-    [210, 110,  60],  // orange
-    [225, 150,  80],  // light orange
+    [190, 75, 50],  // dark orange-red
+    [210, 110, 60],  // orange
+    [225, 150, 80],  // light orange
     [235, 185, 100],  // yellow-orange
     [220, 210, 120],  // yellow
     [170, 200, 100],  // yellow-green
-    [100, 170,  90],  // medium green
-    [ 50, 130,  80],  // green
-    [ 20,  90,  70],  // dark teal-green
+    [100, 170, 90],  // medium green
+    [50, 130, 80],  // green
+    [20, 90, 70],  // dark teal-green
   ];
   const clampedT = Math.max(0, Math.min(1, t));
   const i = Math.min(Math.floor(clampedT * (stops.length - 1)), stops.length - 2);
@@ -102,10 +128,10 @@ let geojsonCache: unknown = null;
 
 export default function WorldChoroplethMap({ data, metric, year, height = 520 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef       = useRef<unknown>(null);
-  const geoLayerRef  = useRef<unknown>(null);
-  const legendRef    = useRef<unknown>(null);
-  const mountedRef   = useRef(true);
+  const mapRef = useRef<unknown>(null);
+  const geoLayerRef = useRef<unknown>(null);
+  const legendRef = useRef<unknown>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -118,6 +144,10 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
     (async () => {
       const L = (await import("leaflet")).default;
       await import("leaflet/dist/leaflet.css");
+      // Remove Leaflet default tooltip padding/background
+      const style = document.createElement("style");
+      style.textContent = `.leaflet-tooltip { padding: 0 !important; background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; } .leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before, .leaflet-tooltip-left:before, .leaflet-tooltip-right:before { display: none !important; }`;
+      document.head.appendChild(style);
       if (cancelled || !containerRef.current) return;
 
       const map = L.map(containerRef.current, {
@@ -143,7 +173,7 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
     if (!data.length) return;
     const timer = setTimeout(() => drawChoropleth(), 400);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, metric, year]);
 
   async function drawChoropleth() {
@@ -207,10 +237,10 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
           ? (rawVal - minVal) / (maxVal - minVal) : 0.5;
 
         return {
-          fillColor:   interpolateColor(t),
+          fillColor: interpolateColor(t),
           fillOpacity: 0.85,
-          color:       "#ffffff",
-          weight:      0.7,
+          color: "#ffffff",
+          weight: 0.7,
         };
       },
 
@@ -225,22 +255,27 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
         }
 
         if (row) {
-          const dispVal = metric === "yoy_growth"
-            ? (row.yoy_growth != null ? `${(row.yoy_growth * 100).toFixed(1)}%` : "N/A")
-            : `$${row.value.toFixed(1)}B`;
-          const label = metric === "yoy_growth" ? "YoY Growth" : "Market Value";
+          const cagrColor = row.yoy_growth != null && row.yoy_growth >= 0 ? "#3B6D11" : "#A32D2D";
+          const cagrVal   = row.yoy_growth != null
+            ? (row.yoy_growth >= 0 ? "+" : "") + (row.yoy_growth * 100).toFixed(1) + "%"
+            : "N/A";
 
           (layer as ReturnType<typeof L.geoJSON>).bindTooltip(
-            `<div style="font-family:Arial,Helvetica,sans-serif;min-width:170px">
-              <div style="font-weight:700;font-size:13px;color:#0f172a;margin-bottom:3px">${row.country}</div>
-              <div style="font-size:11px;color:#64748b;margin-bottom:6px">${row.region}</div>
-              <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-bottom:3px">
-                <span style="color:#64748b">${label}</span>
-                <span style="font-weight:700">${dispVal}</span>
+            `<div style="font-family:Arial,Helvetica,sans-serif;min-width:190px;background:#ffffff;border:0.5px solid #e2e8f0;border-radius:10px;padding:12px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+              <div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:3px">${row.country}</div>
+              <div style="font-size:11px;color:#64748b;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+                <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${regionToColor(row.region)};flex-shrink:0"></span>
+                ${row.region}
               </div>
-              <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px">
-                <span style="color:#64748b">Market Value</span>
-                <span style="font-weight:600">$${row.value.toFixed(1)}B</span>
+              <div style="border-top:0.5px solid #f1f5f9;padding-top:8px;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px">
+                  <span style="font-size:11px;color:#64748b">Market value</span>
+                  <span style="font-size:12px;font-weight:600;color:#0f172a">$${row.value.toFixed(1)}B</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px">
+                  <span style="font-size:11px;color:#64748b">Wtd avg CAGR</span>
+                  <span style="font-size:12px;font-weight:600;color:${cagrColor}">${cagrVal}</span>
+                </div>
               </div>
             </div>`,
             { sticky: true }
@@ -254,11 +289,11 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
 
     // Legend
     const LControl = L.Control.extend({
-      onAdd: function() {
-        const div  = L.DomUtil.create("div");
-        const lbl  = metric === "yoy_growth" ? `YoY Growth ${year}` : `Market Value ${year}`;
-        const fmtMin = metric === "yoy_growth" ? `${(minVal*100).toFixed(1)}%` : `$${minVal.toFixed(0)}B`;
-        const fmtMax = metric === "yoy_growth" ? `${(maxVal*100).toFixed(1)}%` : `$${maxVal.toFixed(0)}B`;
+      onAdd: function () {
+        const div = L.DomUtil.create("div");
+        const lbl = metric === "yoy_growth" ? `YoY Growth ${year}` : `Market Value ${year}`;
+        const fmtMin = metric === "yoy_growth" ? `${(minVal * 100).toFixed(1)}%` : `$${minVal.toFixed(0)}B`;
+        const fmtMax = metric === "yoy_growth" ? `${(maxVal * 100).toFixed(1)}%` : `$${maxVal.toFixed(0)}B`;
         div.innerHTML = `
           <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-family:Arial,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.1);min-width:150px">
             <div style="font-size:11px;font-weight:700;color:#1e293b;margin-bottom:6px">${lbl}</div>
@@ -340,11 +375,29 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
 //   "Republic of Serbia":            "Serbia",
 //   "Côte d'Ivoire":                 "Ivory Coast",
 //   "eSwatini":                      "Swaziland",
+//   // Macau
+//   "Macao":                         "Macau (SAR)",
+//   "Macao SAR":                     "Macau (SAR)",
+//   "Macau":                         "Macau (SAR)",
+//   "China, Macao SAR":              "Macau (SAR)",
+//   // Korea
+//   // Other common GeoJSON names
+//   "Moldova, Republic of":          "Moldova",
+//   "Tanzania, United Republic of":  "Tanzania",
+//   "Iran, Islamic Republic of":     "Iran",
+//   "Venezuela, Bolivarian Republic of": "Venezuela",
+//   "Bolivia, Plurinational State of":   "Bolivia",
+//   "Congo, the Democratic Republic of": "DR Congo",
+//   "Trinidad and Tobago":           "Trinidad and Tobago",
+//   "Cabo Verde":                    "Cape Verde",
+//   "Timor-Leste":                   "East Timor",
+//   // Data has "United States of America" — keep as-is in lookup
 // };
 
 // function resolveCountryName(geoName: string, lookup: Map<string, ChoroplethRow>): ChoroplethRow | undefined {
+//   const geoLower = geoName.toLowerCase().trim();
 //   // 1. Direct match
-//   let row = lookup.get(geoName.toLowerCase());
+//   let row = lookup.get(geoLower);
 //   if (row) return row;
 //   // 2. Alias match
 //   const aliased = GEOJSON_TO_DATA[geoName];
@@ -352,11 +405,16 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
 //     row = lookup.get(aliased.toLowerCase());
 //     if (row) return row;
 //   }
-//   // 3. Partial match — data country starts with GeoJSON name
+//   // 3. "United States of America" → also try "United States"
+//   if (geoLower === "united states of america") {
+//     row = lookup.get("united states");
+//     if (row) return row;
+//   }
+//   // 4. Partial match — handle edge cases
 //   for (const [key, val] of lookup) {
-//     if (key.includes(geoName.toLowerCase()) || geoName.toLowerCase().includes(key)) {
-//       return val;
-//     }
+//     if (key === geoLower) return val;
+//     if (key.length > 4 && geoLower.includes(key)) return val;
+//     if (geoLower.length > 4 && key.includes(geoLower)) return val;
 //   }
 //   return undefined;
 // }
@@ -383,6 +441,7 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
 //   "central america":        "#4a9a5a",  // medium green
 //   "oceania":                "#c8d460",  // yellow-green (same as APAC)
 // };
+
 
 // function regionToColor(region: string): string {
 //   const key = region.toLowerCase().trim();
@@ -416,6 +475,10 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
 //     (async () => {
 //       const L = (await import("leaflet")).default;
 //       await import("leaflet/dist/leaflet.css");
+//       const style = document.createElement("style");
+//       style.textContent = `.leaflet-tooltip { padding: 0 !important; background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; }
+// .leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before, .leaflet-tooltip-left:before, .leaflet-tooltip-right:before { display: none !important; }`;
+//       document.head.appendChild(style);
 //       if (cancelled || !containerRef.current) return;
 
 //       const map = L.map(containerRef.current, {
@@ -525,16 +588,21 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
 //           const label = metric === "yoy_growth" ? "YoY Growth" : "Market Value";
 
 //           (layer as ReturnType<typeof L.geoJSON>).bindTooltip(
-//             `<div style="font-family:Arial,Helvetica,sans-serif;min-width:170px">
-//               <div style="font-weight:700;font-size:13px;color:#0f172a;margin-bottom:3px">${row.country}</div>
-//               <div style="font-size:11px;color:#64748b;margin-bottom:6px">${row.region}</div>
-//               <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-bottom:3px">
-//                 <span style="color:#64748b">${label}</span>
-//                 <span style="font-weight:700">${dispVal}</span>
+//             `<div style="font-family:Arial,Helvetica,sans-serif;min-width:190px;background:#ffffff;border:0.5px solid #e2e8f0;border-radius:10px;padding:12px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+//               <div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:3px">${row.country}</div>
+//               <div style="font-size:11px;color:#64748b;margin-bottom:10px;display:flex;align-items:center;gap:5px">
+//                 <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${regionToColor(row.region)};flex-shrink:0"></span>
+//                 ${row.region}
 //               </div>
-//               <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px">
-//                 <span style="color:#64748b">Market Value</span>
-//                 <span style="font-weight:600">$${row.value.toFixed(1)}B</span>
+//               <div style="border-top:0.5px solid #f1f5f9;padding-top:8px;display:flex;flex-direction:column;gap:6px">
+//                 <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px">
+//                   <span style="font-size:11px;color:#64748b">Market value</span>
+//                   <span style="font-size:12px;font-weight:600;color:#0f172a">$${row.value.toFixed(1)}B</span>
+//                 </div>
+//                 <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px">
+//                   <span style="font-size:11px;color:#64748b">Wtd avg CAGR</span>
+//                   <span style="font-size:12px;font-weight:600;color:${row.yoy_growth != null && row.yoy_growth >= 0 ? '#3B6D11' : '#A32D2D'}">${row.yoy_growth != null ? (row.yoy_growth >= 0 ? '+' : '') + (row.yoy_growth * 100).toFixed(1) + '%' : 'N/A'}</span>
+//                 </div>
 //               </div>
 //             </div>`,
 //             { sticky: true }
@@ -577,7 +645,7 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
 //   }
 
 //   return (
-//     <div style={{ position: "relative", borderRadius: 8, overflow: "hidden" }}>
+//     <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", zIndex: 0, isolation: "isolate" }}>
 //       <div ref={containerRef} style={{ height, width: "100%", borderRadius: 8 }} />
 //     </div>
 //   );
