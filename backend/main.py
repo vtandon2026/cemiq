@@ -95,13 +95,16 @@ app.add_middleware(
 
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-from routers import data, export, chat, deck, exec_summary
+from routers import data, export, chat, deck, exec_summary, construction_detail
 
 app.include_router(data.router,         prefix="/data")
 app.include_router(export.router,       prefix="/export")
 app.include_router(chat.router,         prefix="/chat")
 app.include_router(deck.router,         prefix="/deck")
 app.include_router(exec_summary.router, prefix="/exec-summary")
+app.include_router(construction_detail.router, prefix="/construction-detail")
+
+
 
 
 @app.get("/health")
