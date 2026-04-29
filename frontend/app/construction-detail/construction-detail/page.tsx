@@ -217,6 +217,37 @@ export default function ConstructionDetailPage() {
         title="Construction Detail"
         subtitle="Market Intelligence · Segment-level construction activity by region &amp; country"
       />
+      <div style={{ marginBottom: 12 }}>
+        <a
+          href="https://us-east-1.online.tableau.com/#/site/casepracticeproduct/views/Constructionoutlook2025-29F/TitlePage?:iid=1"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            fontSize: 12, fontWeight: 600, color: "#E60000",
+            textDecoration: "none", fontFamily: F,
+            padding: "5px 10px",
+            border: "1px solid rgba(230,0,0,0.25)",
+            borderRadius: 6,
+            background: "#fff7f7",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#fee2e2";
+            e.currentTarget.style.borderColor = "rgba(230,0,0,0.5)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "#fff7f7";
+            e.currentTarget.style.borderColor = "rgba(230,0,0,0.25)";
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          View in Tableau
+        </a>
+      </div>
 
       {error && (
         <div style={{
@@ -302,22 +333,12 @@ export default function ConstructionDetailPage() {
           <div style={{ flex: 1, minWidth: 0 }}>
 
             {/* Toolbar */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
               <SegmentedControl
                 options={["Mekko View", "Growth View"]}
                 value={viewMode}
                 onChange={setViewMode}
               />
-              <div style={{ marginLeft: "auto" }}>
-                <ChartActions
-                  onCsv={downloadCsv}
-                  csvDisabled={csvDisabled}
-                  showPpt
-                  onPpt={exportPpt}
-                  pptDisabled={csvDisabled}
-                  pptLoading={exporting}
-                />
-              </div>
             </div>
 
             {/* Chart card */}
@@ -326,7 +347,7 @@ export default function ConstructionDetailPage() {
               borderRadius: 10, padding: 16,
               boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
             }}>
-              {/* Chart title */}
+              {/* Chart title + actions */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", fontFamily: F }}>
@@ -342,6 +363,14 @@ export default function ConstructionDetailPage() {
                     }
                   </div>
                 </div>
+                <ChartActions
+                  onCsv={downloadCsv}
+                  csvDisabled={csvDisabled}
+                  showPpt
+                  onPpt={exportPpt}
+                  pptDisabled={csvDisabled}
+                  pptLoading={exporting}
+                />
               </div>
 
               {loading ? (

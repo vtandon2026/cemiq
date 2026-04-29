@@ -49,6 +49,17 @@ const GEOJSON_TO_DATA: Record<string, string> = {
   "Republic of Serbia": "Serbia",
   "Côte d'Ivoire": "Ivory Coast",
   "eSwatini": "Swaziland",
+  // Block overseas territories from matching their parent country
+  "French Guiana": "__no_data__",
+  "Guadeloupe": "__no_data__",
+  "Martinique": "__no_data__",
+  "Réunion": "__no_data__",
+  "Mayotte": "__no_data__",
+  "New Caledonia": "__no_data__",
+  "French Polynesia": "__no_data__",
+  "Guyane": "__no_data__",
+  "French Guayana": "__no_data__",
+  "Guyane française": "__no_data__",
 };
 
 // Region → color (matches map fill colors)
@@ -77,20 +88,37 @@ function regionToColor(region: string): string {
   return "#94a3b8";
 }
 
+// Territories with no construction data — always show as grey
+const NO_DATA_TERRITORIES = new Set([
+  "greenland", "antarctica", "french southern and antarctic lands",
+  "falkland islands", "western sahara", "somaliland", "north cyprus",
+  "kashmir", "gaza", "west bank", "french guiana", "guadeloupe",
+  "martinique", "reunion", "mayotte", "saint pierre and miquelon",
+  "new caledonia", "french polynesia", "wallis and futuna",
+  "guyane", "french guayana", "guyane française",
+]);
+
 function resolveCountryName(geoName: string, lookup: Map<string, ChoroplethRow>): ChoroplethRow | undefined {
+  const geoLower = geoName.toLowerCase().trim();
+  // Explicitly exclude territories with no data
+  if (NO_DATA_TERRITORIES.has(geoLower)) return undefined;
+  // Block anything with "guiana" or "guyane" to catch all French Guiana variants
+  if (geoLower.includes("guiana") || geoLower.includes("guyane")) return undefined;
   // 1. Direct match
-  let row = lookup.get(geoName.toLowerCase());
+  let row = lookup.get(geoLower);
   if (row) return row;
   // 2. Alias match
   const aliased = GEOJSON_TO_DATA[geoName];
+  if (aliased === "__no_data__") return undefined;
   if (aliased) {
     row = lookup.get(aliased.toLowerCase());
     if (row) return row;
   }
-  // 3. Partial match — data country starts with GeoJSON name
+  // 3. Strict partial match — only match if one fully contains the other AND min length > 5
   for (const [key, val] of lookup) {
-    if (key.includes(geoName.toLowerCase()) || geoName.toLowerCase().includes(key)) {
-      return val;
+    if (key.length > 5 && geoLower.length > 5) {
+      if (key === geoLower) return val;
+      if (geoLower.startsWith(key) || key.startsWith(geoLower)) return val;
     }
   }
   return undefined;
@@ -216,10 +244,14 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
       style: (feature) => {
         if (!feature) return { fillColor: "#dde1e7", fillOpacity: 0.5, color: "#ffffff", weight: 0.5 };
         const props = feature.properties as Record<string, string>;
-        // Try multiple name fields in the GeoJSON
+        // Skip non-sovereign territories (French Guiana, overseas depts etc.)
+        const featureType = props.TYPE || "";
+        if (featureType && !["Sovereign country", "Country", "Disputed", "Indeterminate"].includes(featureType)) {
+          return { fillColor: "#dde1e7", fillOpacity: 0.55, color: "#ffffff", weight: 0.5 };
+        }
+        // Only use NAME/ADMIN — NOT SOVEREIGNT (causes French Guiana → France match)
         const nameCandidates = [
-          props.NAME, props.ADMIN, props.NAME_LONG,
-          props.FORMAL_EN, props.NAME_EN, props.SOVEREIGNT,
+          props.NAME, props.ADMIN, props.NAME_LONG, props.NAME_EN,
         ].filter(Boolean);
 
         let row: ChoroplethRow | undefined;
@@ -235,7 +267,6 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
         const rawVal = metric === "yoy_growth" ? row.yoy_growth : row.value;
         const t = (rawVal != null && maxVal !== minVal)
           ? (rawVal - minVal) / (maxVal - minVal) : 0.5;
-
         return {
           fillColor: interpolateColor(t),
           fillOpacity: 0.85,
@@ -247,7 +278,10 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
       onEachFeature: (feature, layer) => {
         if (!feature) return;
         const props = feature.properties as Record<string, string>;
-        const nameCandidates = [props.NAME, props.ADMIN, props.NAME_LONG].filter(Boolean);
+        // Skip non-sovereign territories
+        const featureType = props.TYPE || "";
+        if (featureType && !["Sovereign country", "Country", "Disputed", "Indeterminate"].includes(featureType)) return;
+        const nameCandidates = [props.NAME, props.ADMIN, props.NAME_LONG, props.NAME_EN].filter(Boolean);
         let row: ChoroplethRow | undefined;
         for (const name of nameCandidates) {
           row = resolveCountryName(name, lookup);
@@ -256,15 +290,19 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
 
         if (row) {
           const cagrColor = row.yoy_growth != null && row.yoy_growth >= 0 ? "#3B6D11" : "#A32D2D";
-          const cagrVal   = row.yoy_growth != null
+          const cagrVal = row.yoy_growth != null
             ? (row.yoy_growth >= 0 ? "+" : "") + (row.yoy_growth * 100).toFixed(1) + "%"
             : "N/A";
+          const rawVal = metric === "yoy_growth" ? row.yoy_growth : row.value;
+          const t = (rawVal != null && maxVal !== minVal)
+            ? (rawVal - minVal) / (maxVal - minVal) : 0.5;
+          const fillColor = interpolateColor(t);
 
           (layer as ReturnType<typeof L.geoJSON>).bindTooltip(
             `<div style="font-family:Arial,Helvetica,sans-serif;min-width:190px;background:#ffffff;border:0.5px solid #e2e8f0;border-radius:10px;padding:12px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
               <div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:3px">${row.country}</div>
               <div style="font-size:11px;color:#64748b;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-                <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${regionToColor(row.region)};flex-shrink:0"></span>
+                <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${fillColor};flex-shrink:0"></span>
                 ${row.region}
               </div>
               <div style="border-top:0.5px solid #f1f5f9;padding-top:8px;display:flex;flex-direction:column;gap:6px">
@@ -317,7 +355,6 @@ export default function WorldChoroplethMap({ data, metric, year, height = 520 }:
     </div>
   );
 }
-
 
 
 

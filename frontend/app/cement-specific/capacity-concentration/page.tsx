@@ -1029,7 +1029,7 @@ export default function CapacityConcentrationPage() {
               currentFilters={{ statuses: [...selectedStatuses], topN, customCountries }}
               chartContext={chartCtx}
               dataScope="cement_specific"
-              title="Cement Lens"
+              title="Construct Lens"
             />
           </div>
         </div>

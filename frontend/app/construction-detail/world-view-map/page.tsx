@@ -97,12 +97,15 @@ export default function WorldViewMapPage() {
       getWorldViewChoropleth({ year, segment: seg, new_ren: nr, source: src, metric })
         .then((r) => {
           setChoroplethData(r.data.data);
+          const allChoro = [...r.data.data]
+            .sort((a, b) => b.value - a.value)
+            .map((d) => `${d.country}:${d.value.toFixed(2)}(${d.yoy_growth != null ? (d.yoy_growth * 100).toFixed(1) + "%" : "N/A"})`);
           setChartCtx({
             view: "choropleth",
             year, metric, segment, new_ren: newRen, source,
-            chart_type: "Choropleth world map — countries shaded by construction activity value",
-            countries_shown: r.data.data.length,
-            data_description: "Country-level aggregated construction activity values",
+            chart_type: "Choropleth world map — countries colored by region, showing construction activity",
+            data_description: "Format: Country:Value(CAGR). Value = construction market size. CAGR = weighted avg forecast.",
+            all_countries: allChoro.join(", "),
           });
         })
         .catch((e: Error) => setError(e.message))
@@ -111,11 +114,14 @@ export default function WorldViewMapPage() {
       getWorldViewBubble({ year, segment: seg, new_ren: nr, source: src, top_n: topN })
         .then((r) => {
           setBubbleData(r.data.data);
+          const allBubble = r.data.data
+            .map((d) => `${d.rank}.${d.country}:$${d.value.toFixed(2)}B(${d.yoy_growth != null ? (d.yoy_growth * 100).toFixed(1) + "%" : "N/A"})`);
           setChartCtx({
             view: "bubble",
-            year, top_n: topN, segment, new_ren: newRen, source,
-            chart_type: "Bubble world map — top countries shown as proportional bubbles",
-            countries_shown: r.data.data.length,
+            year, segment, new_ren: newRen, source,
+            chart_type: "Bubble map — bubble size = market value ($B), color = weighted avg CAGR",
+            data_description: "Format: Rank.Country:$Value(CAGR). CAGR weights: GlobalData×1, IHS×2, Euroconstruct×2.",
+            all_countries: allBubble.join(", "),
           });
         })
         .catch((e: Error) => setError(e.message))
@@ -150,6 +156,37 @@ export default function WorldViewMapPage() {
         title="World View Map"
         subtitle="Construction Detail · Global construction activity by country"
       />
+      <div style={{ marginBottom: 12 }}>
+        <a
+          href="https://us-east-1.online.tableau.com/#/site/casepracticeproduct/views/Constructionoutlook2025-29F/TitlePage?:iid=1"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            fontSize: 12, fontWeight: 600, color: "#E60000",
+            textDecoration: "none", fontFamily: F,
+            padding: "5px 10px",
+            border: "1px solid rgba(230,0,0,0.25)",
+            borderRadius: 6,
+            background: "#fff7f7",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#fee2e2";
+            e.currentTarget.style.borderColor = "rgba(230,0,0,0.5)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "#fff7f7";
+            e.currentTarget.style.borderColor = "rgba(230,0,0,0.25)";
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          View in Tableau
+        </a>
+      </div>
 
       {error && (
         <div style={{
