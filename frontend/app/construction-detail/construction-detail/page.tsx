@@ -217,38 +217,6 @@ export default function ConstructionDetailPage() {
         title="Construction Detail"
         subtitle="Market Intelligence · Segment-level construction activity by region &amp; country"
       />
-      <div style={{ marginBottom: 12 }}>
-        <a
-          href="https://us-east-1.online.tableau.com/#/site/casepracticeproduct/views/Constructionoutlook2025-29F/TitlePage?:iid=1"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            fontSize: 12, fontWeight: 600, color: "#E60000",
-            textDecoration: "none", fontFamily: F,
-            padding: "5px 10px",
-            border: "1px solid rgba(230,0,0,0.25)",
-            borderRadius: 6,
-            background: "#fff7f7",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#fee2e2";
-            e.currentTarget.style.borderColor = "rgba(230,0,0,0.5)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#fff7f7";
-            e.currentTarget.style.borderColor = "rgba(230,0,0,0.25)";
-          }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-          View in Tableau
-        </a>
-      </div>
-
       {error && (
         <div style={{
           marginBottom: 16, padding: "10px 14px", borderRadius: 8,
@@ -333,12 +301,41 @@ export default function ConstructionDetailPage() {
           <div style={{ flex: 1, minWidth: 0 }}>
 
             {/* Toolbar */}
-            <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <SegmentedControl
                 options={["Mekko View", "Growth View"]}
                 value={viewMode}
                 onChange={setViewMode}
               />
+              <a
+                href="https://us-east-1.online.tableau.com/#/site/casepracticeproduct/views/Constructionoutlook2025-29F/TitlePage?:iid=1"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  fontSize: 12, fontWeight: 600, color: "#E60000",
+                  textDecoration: "none", fontFamily: F,
+                  padding: "5px 10px",
+                  border: "1px solid rgba(230,0,0,0.25)",
+                  borderRadius: 6,
+                  background: "#fff7f7",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#fee2e2";
+                  e.currentTarget.style.borderColor = "rgba(230,0,0,0.5)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#fff7f7";
+                  e.currentTarget.style.borderColor = "rgba(230,0,0,0.25)";
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                View in Tableau
+              </a>
             </div>
 
             {/* Chart card */}
