@@ -699,44 +699,34 @@ const DEFAULT_COUNTRIES = [
 ];
 
 export default function CapacityConcentrationPage() {
-  // Meta
   const [allStatuses, setAllStatuses]   = useState<string[]>([]);
   const [allCountries, setAllCountries] = useState<string[]>([]);
-
-  // Filters
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set());
   const [topN, setTopN]                         = useState(10);
   const [customCountries, setCustomCountries]   = useState<string[]>(DEFAULT_COUNTRIES);
   const [addCountry, setAddCountry]             = useState("");
-
-  // Data
   const [chartData, setChartData] = useState<ConcentrationRow[]>([]);
   const [loading, setLoading]     = useState(false);
   const [exporting, setExporting] = useState(false);
   const [chartCtx, setChartCtx]  = useState<Record<string, unknown>>({});
   const [showTable, setShowTable] = useState(false);
 
-  // ── Load meta once ─────────────────────────────────────────────────────────
   useEffect(() => {
     fetchMeta()
       .then(({ statuses, countries }) => {
+        setAllStatuses(statuses ?? []);
+        setAllCountries(countries ?? []);
         const s = statuses ?? [];
-        const c = countries ?? [];
-        setAllStatuses(s);
-        setAllCountries(c);
         const def = s.includes("operating") ? new Set(["operating"]) : new Set(s);
         setSelectedStatuses(def);
       })
       .catch(err => console.error("Failed to load meta:", err));
   }, []);
 
-  // ── Fetch chart data whenever filters change ───────────────────────────────
   const load = useCallback(() => {
     if (!allStatuses.length) return;
     setLoading(true);
-    const statuses = selectedStatuses.size === allStatuses.length
-      ? null
-      : [...selectedStatuses];
+    const statuses = selectedStatuses.size === allStatuses.length ? null : [...selectedStatuses];
     const countries = customCountries.length ? customCountries : null;
     fetchChart({ statuses, countries, top_n_countries: topN })
       .then(res => {
@@ -748,7 +738,6 @@ export default function CapacityConcentrationPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Toggle status checkbox ─────────────────────────────────────────────────
   const toggleStatus = (s: string, checked: boolean) => {
     setSelectedStatuses(prev => {
       const next = new Set(prev);
@@ -757,11 +746,9 @@ export default function CapacityConcentrationPage() {
     });
   };
 
-  // ── Country management ─────────────────────────────────────────────────────
   const addCustomCountry = () => {
-    if (addCountry && !customCountries.includes(addCountry)) {
+    if (addCountry && !customCountries.includes(addCountry))
       setCustomCountries(prev => [...prev, addCountry]);
-    }
     setAddCountry("");
   };
 
@@ -772,24 +759,36 @@ export default function CapacityConcentrationPage() {
   const exportPpt = async () => {
     if (!chartData.length) return;
     setExporting(true);
-    const tc = (v: string | number | null) =>
-      v == null ? null : typeof v === "number" ? { number: v } : { string: v };
     try {
-      const sorted    = [...chartData].sort((a, b) => b.top3_share - a.top3_share);
-      const header    = [null, ...sorted.map(r => ({ string: r.country }))];
-      // Send absolute capacity values — think-cell computes width + % automatically
-      // Template has 3 series; we use Series 1 = Top 3, Series 2 = Other, Series 3 = null
-      const top3Row   = [{ string: "Top 3" }, ...sorted.map(r => ({ number: r.top3_capacity }))];
-      const otherRow  = [{ string: "Other" }, ...sorted.map(r => ({ number: parseFloat((r.total_capacity - r.top3_capacity).toFixed(2)) }))];
-      const series3   = [{ string: "" },      ...sorted.map(() => null)];
+      // Sort by top3_share descending (matches chart order)
+      const sorted = [...chartData].sort((a, b) => b.top3_share - a.top3_share);
+
+      // think-cell mekko table format:
+      // Row 0 = header: [null, country1, country2, ...]
+      // Row 1 = series "Top 3":  [label, top3_capacity, ...]
+      // Row 2 = series "Other":  [label, other_capacity, ...]
+      const header  = [null, ...sorted.map(r => ({ string: r.country }))];
+      const top3Row = [
+        { string: "Top 3" },
+        ...sorted.map(r => ({ number: parseFloat(r.top3_capacity.toFixed(2)) })),
+      ];
+      const otherRow = [
+        { string: "Other" },
+        ...sorted.map(r => ({
+          number: parseFloat((r.total_capacity - r.top3_capacity).toFixed(2)),
+        })),
+      ];
 
       const res = await exportPptx({
         template: "mekko_rms",
         filename: "capacity_concentration.pptx",
-        data: [{ name: "MekkoChart", table: [header, top3Row, otherRow, series3] }],
+        data: [{ name: "MekkoChart", table: [header, top3Row, otherRow] }],
       });
+
       downloadBlob(
-        new Blob([res.data], { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" }),
+        new Blob([res.data], {
+          type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        }),
         "capacity_concentration.pptx",
       );
     } catch (e) {
@@ -823,8 +822,6 @@ export default function CapacityConcentrationPage() {
 
         {/* ── Sidebar ─────────────────────────────────────────────────── */}
         <Sidebar title="Filters">
-
-          {/* Operating status */}
           <div>
             <FilterLabel>Operating Status</FilterLabel>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
@@ -841,7 +838,6 @@ export default function CapacityConcentrationPage() {
 
           <FilterDivider />
 
-          {/* Top N (only when not using custom country list) */}
           {customCountries.length === 0 && (
             <div>
               <FilterLabel>Top Countries: <strong>{topN}</strong></FilterLabel>
@@ -858,11 +854,8 @@ export default function CapacityConcentrationPage() {
 
           <FilterDivider />
 
-          {/* Country picker */}
           <div>
             <FilterLabel>Countries</FilterLabel>
-
-            {/* Tag box */}
             <div style={{
               minHeight: 48, maxHeight: 130, overflowY: "auto",
               border: "1px solid #e2e8f0", borderRadius: 6,
@@ -880,8 +873,7 @@ export default function CapacityConcentrationPage() {
                   display: "inline-flex", alignItems: "center", gap: 3,
                   background: "#fef2f2", border: "1px solid #fecaca",
                   borderRadius: 4, padding: "2px 5px",
-                  fontSize: 10, color: "#dc2626", fontWeight: 600,
-                  whiteSpace: "nowrap",
+                  fontSize: 10, color: "#dc2626", fontWeight: 600, whiteSpace: "nowrap",
                 }}>
                   {c}
                   <button
@@ -891,18 +883,10 @@ export default function CapacityConcentrationPage() {
                 </span>
               ))}
             </div>
-
-            {/* Add dropdown */}
             <div style={{ display: "flex", gap: 4 }}>
-              <FilterSelect
-                value={addCountry}
-                onChange={e => setAddCountry(e.target.value)}
-                style={{ flex: 1 }}
-              >
+              <FilterSelect value={addCountry} onChange={e => setAddCountry(e.target.value)} style={{ flex: 1 }}>
                 <option value="">Add country…</option>
-                {allCountries
-                  .filter(c => !customCountries.includes(c))
-                  .map(c => <option key={c}>{c}</option>)}
+                {allCountries.filter(c => !customCountries.includes(c)).map(c => <option key={c}>{c}</option>)}
               </FilterSelect>
               <button
                 onClick={addCustomCountry}
@@ -917,7 +901,6 @@ export default function CapacityConcentrationPage() {
                 }}
               >+</button>
             </div>
-
             {customCountries.length > 0 && (
               <button
                 onClick={() => setCustomCountries([])}
@@ -934,11 +917,7 @@ export default function CapacityConcentrationPage() {
           <div style={{ flex: 1, minWidth: 0 }}>
 
             {/* Chart card */}
-            <div style={{
-              background: "#ffffff", border: "1px solid #e9ecef",
-              borderRadius: 10, padding: 16,
-              boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-            }}>
+            <div style={{ background: "#ffffff", border: "1px solid #e9ecef", borderRadius: 10, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 16 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>

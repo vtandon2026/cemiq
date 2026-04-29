@@ -96,12 +96,18 @@ export default function StockPriceOverviewPage() {
     if (!data) return;
     setExporting(true);
     try {
-      // Build think-cell table: header row + one row per date
       const companies = Object.keys(data.series);
-      const header = ["Date", ...companies];
-      const rows: unknown[][] = data.dates.map((date, i) => [
-        date,
-        ...companies.map((co) => data.series[co]?.[i] ?? null),
+      // think-cell table format: each cell must be {string: "..."} or {number: ...}
+      const header = [
+        { string: "Date" },
+        ...companies.map((co) => ({ string: co })),
+      ];
+      const rows = data.dates.map((date: string, i: number) => [
+        { string: date },
+        ...companies.map((co) => {
+          const v = data.series[co]?.[i];
+          return v != null ? { number: v } : null;
+        }),
       ]);
       const res = await exportPptx({
         template: "stock_price",
@@ -185,6 +191,17 @@ export default function StockPriceOverviewPage() {
         <div style={{ flex: 1, minWidth: 0, display: "flex", gap: 16 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
 
+            {/* Toolbar */}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+              <ChartActions
+                onCsv={downloadCsv}
+                onPpt={exportPpt}
+                csvDisabled={!data}
+                pptDisabled={!data}
+                pptLoading={exporting}
+              />
+            </div>
+
             {/* Chart card */}
             <div style={{
               background: "#ffffff",
@@ -193,27 +210,17 @@ export default function StockPriceOverviewPage() {
               padding: 16,
               boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
             }}>
-              {/* Chart title */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 16 }}>
+                            {/* Chart title */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", fontFamily: "Arial, Helvetica, sans-serif" }}>
-                    Stock Price Performance
+                    {`${companies.length} companies · Indexed price`}
                   </div>
                   <div style={{ fontSize: 11, color: "#94a3b8", fontFamily: "Arial, Helvetica, sans-serif", marginTop: 2 }}>
-                    Indexed share price · {endYear - windowYrs}–{endYear}
+                    Stock price performance (rebased to 100)
                   </div>
                 </div>
-                <div style={{ flexShrink: 0 }}>
-                  <ChartActions
-                    onCsv={downloadCsv}
-                    onPpt={exportPpt}
-                    csvDisabled={!data}
-                    pptDisabled={!data}
-                    pptLoading={exporting}
-                  />
-                </div>
               </div>
-              
               {loading ? (
                 <div style={{
                   display: "flex", alignItems: "center", justifyContent: "center",

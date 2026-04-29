@@ -97,14 +97,16 @@ export default function WorldViewMapPage() {
       getWorldViewChoropleth({ year, segment: seg, new_ren: nr, source: src, metric })
         .then((r) => {
           setChoroplethData(r.data.data);
+          // Send all countries but compact format to stay within token limits
           const allChoro = [...r.data.data]
             .sort((a, b) => b.value - a.value)
-            .map((d) => `${d.country}:${d.value.toFixed(2)}(${d.yoy_growth != null ? (d.yoy_growth * 100).toFixed(1) + "%" : "N/A"})`);
+            .slice(0, 50)
+            .map((d) => `${d.country}:$${d.value.toFixed(1)}B(${d.yoy_growth != null ? (d.yoy_growth * 100).toFixed(1) + "%" : "N/A"})`);
           setChartCtx({
             view: "choropleth",
             year, metric, segment, new_ren: newRen, source,
-            chart_type: "Choropleth world map — countries colored by region, showing construction activity",
-            data_description: "Format: Country:Value(CAGR). Value = construction market size. CAGR = weighted avg forecast.",
+            chart_type: "Choropleth world map — countries colored by construction activity value",
+            data_description: "Format: Country:$Value(CAGR%). Values are aggregated construction market size in $B.",
             all_countries: allChoro.join(", "),
           });
         })
@@ -115,12 +117,13 @@ export default function WorldViewMapPage() {
         .then((r) => {
           setBubbleData(r.data.data);
           const allBubble = r.data.data
-            .map((d) => `${d.rank}.${d.country}:$${d.value.toFixed(2)}B(${d.yoy_growth != null ? (d.yoy_growth * 100).toFixed(1) + "%" : "N/A"})`);
+            .slice(0, 50)
+            .map((d) => `${d.rank}.${d.country}:$${d.value.toFixed(1)}B(${d.yoy_growth != null ? (d.yoy_growth * 100).toFixed(1) + "%" : "N/A"})`);
           setChartCtx({
             view: "bubble",
             year, segment, new_ren: newRen, source,
             chart_type: "Bubble map — bubble size = market value ($B), color = weighted avg CAGR",
-            data_description: "Format: Rank.Country:$Value(CAGR). CAGR weights: GlobalData×1, IHS×2, Euroconstruct×2.",
+            data_description: "Format: Rank.Country:$Value(CAGR%). Values are aggregated construction market size in $B. CAGR weights: GlobalData×1, IHS×2, Euroconstruct×2.",
             all_countries: allBubble.join(", "),
           });
         })
@@ -339,8 +342,9 @@ export default function WorldViewMapPage() {
               currentFilters={{
                 year, segment, new_ren: newRen, source, viewMode, metric,
                 top_n: topN,
-                data_description: "Construction activity data aggregated at country level",
-                available_metrics: "total_value (sum of activity), yoy_growth (year-on-year % change)",
+                data_description: "Pre-aggregated construction market data by country. Values below are the EXACT aggregated market values — use these directly, do NOT query the raw Excel.",
+                available_metrics: "total_value (sum of activity in $B), yoy_growth (weighted avg CAGR %)",
+                important_note: "The values in chart_context.all_countries are the correct aggregated values shown on the map. Always use these values when answering questions about specific countries.",
               }}
               chartContext={chartCtx}
               dataScope="construction_detail"

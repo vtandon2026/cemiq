@@ -89,28 +89,60 @@ export default function ChatPanel({
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, loading]);
 
+  const [retryPayload, setRetryPayload] = useState<null | {
+    messages: ChatMessageType[];
+    filters: Record<string, unknown>;
+    ctx: Record<string, unknown>;
+  }>(null);
+
+  const doSend = async (
+    msgs: ChatMessageType[],
+    filters: Record<string, unknown>,
+    ctx: Record<string, unknown>,
+    attempt = 1,
+  ) => {
+    setLoading(true);
+    setRetryPayload(null);
+    try {
+      const res = await sendChat({
+        messages:        msgs,
+        current_filters: filters,
+        chart_context:   ctx,
+        mode:            webEnabled ? "web" : "dataset",
+        data_scope:      dataScope,
+      });
+      setMessages((prev) => [...prev, { role: "assistant", content: res.data.answer }]);
+      setLoading(false);
+    } catch (err: unknown) {
+      if (attempt < 2) {
+        // Auto-retry once
+        setTimeout(() => doSend(msgs, filters, ctx, attempt + 1), 800);
+        return;
+      }
+      const errMsg = err instanceof Error ? err.message : "Unknown error";
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `I encountered an issue: ${errMsg.includes("500") ? "the server had an error processing your request" : errMsg}. You can retry below.`,
+        },
+      ]);
+      setRetryPayload({ messages: msgs, filters, ctx });
+      setLoading(false);
+    }
+  };
+
   const handleSend = async (text: string) => {
     const userMsg: ChatMessageType = { role: "user", content: text };
     const updated = [...messages, userMsg];
     setMessages(updated);
     setLoading(true);
-    try {
-      const res = await sendChat({
-        messages:        updated,
-        current_filters: currentFilters,
-        chart_context:   chartContext,
-        mode:            webEnabled ? "web" : "dataset",
-        data_scope:      dataScope,
-      });
-      setMessages((prev) => [...prev, { role: "assistant", content: res.data.answer }]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Sorry — I hit an error. Please try again." },
-      ]);
-    } finally {
-      setLoading(false);
-    }
+    await doSend(updated, currentFilters as Record<string, unknown>, chartContext as Record<string, unknown>);
+  };
+
+  const handleRetry = () => {
+    if (!retryPayload) return;
+    doSend(retryPayload.messages, retryPayload.filters, retryPayload.ctx);
   };
 
   return (
@@ -240,6 +272,27 @@ export default function ChatPanel({
             <ChatMessage key={i} role={msg.role} content={msg.content} />
           ))}
           {loading && <TypingDots />}
+          {retryPayload && !loading && (
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+              <button
+                onClick={handleRetry}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  background: "none", border: "1px solid #e2e8f0",
+                  borderRadius: 20, padding: "5px 14px",
+                  fontSize: 12, color: "#64748b", cursor: "pointer",
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--bain-red)"; e.currentTarget.style.color = "var(--bain-red)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#64748b"; }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.46"/>
+                </svg>
+                Retry
+              </button>
+            </div>
+          )}
 
         </div>
 

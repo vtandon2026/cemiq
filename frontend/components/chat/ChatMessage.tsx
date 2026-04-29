@@ -57,8 +57,8 @@ export default function ChatMessage({ role, content }: Props) {
             <style>{`
               /* ── Base ── */
               .chat-md {
-                font-size: 13px;
-                line-height: 1.65;
+                font-size: 13.5px;
+                line-height: 1.75;
                 color: #1e293b;
                 font-family: Arial, Helvetica, sans-serif;
               }
@@ -99,7 +99,7 @@ export default function ChatMessage({ role, content }: Props) {
               }
               .chat-md li {
                 margin-bottom: 5px;
-                font-size: 13px;
+                font-size: 13.5px;
                 line-height: 1.65;
                 color: #1e293b;
               }
@@ -210,6 +210,8 @@ export default function ChatMessage({ role, content }: Props) {
                 {content
                   // Convert standalone **Title** lines to ### headings
                   .replace(/^\*\*(.+?)\*\*$/gm, "### $1")
+                  // Convert ANY indented line (2+ spaces) to a markdown bullet
+                  .replace(/^([ \t]{2,})(\S)/gm, "- $2")
                   .replace(/\\\[\s*([\s\S]*?)\s*\\\]/g, (_: string, inner: string) =>
                     inner
                       .replace(/\\text\{([^}]+)\}/g, "$1")
