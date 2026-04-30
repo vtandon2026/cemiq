@@ -47,14 +47,19 @@ const NAV_ITEMS = [
   },
   {
   label: "Cement Specific",
-  children: [
-    {
-      label: "Capacity Concentration",
-      href:  "/cement-specific/capacity-concentration",
-      desc:  "Top 3 share of local production capacity by country",
-    },
-  ],
-},
+   children: [
+      {
+        label: "Capacity Concentration",
+        href:  "/cement-specific/capacity-concentration",
+        desc:  "Top 3 share of local production capacity by country",
+      },
+      {
+        label: "M&A Activity",
+        href:  "/cement-specific/ma-deals",
+        desc:  "Cement industry deal value & count by year",
+      },
+    ],
+  },
 ];
 
 export default function Navbar() {

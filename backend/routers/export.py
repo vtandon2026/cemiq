@@ -51,8 +51,13 @@ TEMPLATE_MAP: Dict[str, Path] = {
     "construction": settings.THINKCELL_TEMPLATE_GROWTH_S2,
     "building":    settings.THINKCELL_TEMPLATE_GROWTH_S3,
     "cement":      settings.THINKCELL_TEMPLATE_GROWTH_S4,
+<<<<<<< HEAD
     "stock_price":  settings.THINKCELL_TEMPLATE_BAR,   # fallback to bar template
     "mekko_rms":    settings.THINKCELL_TEMPLATE_MEKKO,  # capacity concentration
+=======
+    "mekko_rms": settings.THINKCELL_TEMPLATE_MEKKO_RMS,
+    "ma":        settings.THINKCELL_TEMPLATE_MA,
+>>>>>>> mna
 }
 
 

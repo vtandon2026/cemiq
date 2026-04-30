@@ -144,9 +144,8 @@ export default function MaDealsPage() {
       const res = await exportPptx({
         template: "ma",
         filename: "ma_deals.pptx",
-        data: [{ name: "MAChart", table: [header, valRow, cntRow] }],
+        data: [{ name: "GrowthChart", table: [header, valRow, cntRow] }],
       });
-
       downloadBlob(
         new Blob([res.data], { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" }),
         "ma_deals.pptx",
@@ -278,7 +277,11 @@ export default function MaDealsPage() {
             </div>
 
             {/* Chart card */}
-            <div style={{ background: "#ffffff", border: "1px solid #e9ecef", borderRadius: 10, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+            <div style={{
+              background: "#ffffff", border: "1px solid #e9ecef",
+              borderRadius: 10, padding: 16,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+            }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 16 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>

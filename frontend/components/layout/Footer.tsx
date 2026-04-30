@@ -289,6 +289,8 @@ const NAV_LINKS = [
         section: "Cement Specific",
         links: [
             { label: "Capacity Concentration", href: "/cement-specific/capacity-concentration" },
+            { label: "M&A Activity",           href: "/cement-specific/ma-deals" },
+
         ],
     },
 ];
