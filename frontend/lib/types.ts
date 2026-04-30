@@ -131,3 +131,52 @@ export interface KpiSelectionRow {
   kpi_label: string;
   chart_mode_label: string;
 }
+
+// ── Chatbot Interface ──────────────────────────────────────────────────────────────
+
+export interface ChartSeries {
+  name: string;
+  data_key: string;
+  type?: "bar" | "line" | "pie";
+  color?: string;
+}
+
+export interface ChatChartBlock {
+  type: "bar" | "line" | "bar_line" | "pie";
+  title?: string;
+  x_key: string;
+  series: ChartSeries[];
+  data: Record<string, string | number>[];
+  x_label?: string;
+  y_label?: string;
+  y2_label?: string;
+}
+
+export interface ChatTableBlock {
+  headers: string[];
+  rows: (string | number)[][];
+  source?: string;
+  caption?: string;
+}
+
+export interface ChatDerivationBlock {
+  title: string;
+  steps: string[];
+}
+
+export interface ChatApiResponse {
+  answer: string;
+  sources?: { title: string; url: string }[];
+  chart?: ChatChartBlock;
+  table?: ChatTableBlock;
+  derivation?: ChatDerivationBlock;
+}
+
+// Extended message type to carry structured blocks
+export interface ChatMessageFull {
+  role: "user" | "assistant";
+  content: string;
+  chart?: ChatChartBlock;
+  table?: ChatTableBlock;
+  derivation?: ChatDerivationBlock;
+}

@@ -173,4 +173,4 @@ def get_deals_table(
     out = fdf[display_cols].copy()
     out["Pricing/Completion Date"] = out["Pricing/Completion Date"].astype(str)
     out = out.replace({np.nan: None})
-    return out.head(500).to_dict(orient="records")
+    return out.to_dict(orient="records")

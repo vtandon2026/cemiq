@@ -426,59 +426,57 @@ def _looks_like_quant_query(messages: List[Dict[str, Any]]) -> bool:
     return any(x in user_text for x in quant_triggers)
 
 
+
 def _looks_like_chart_or_excel_only_query(messages: List[Dict[str, Any]]) -> bool:
     user_text = _latest_user_text(messages)
     if not user_text:
         return False
 
-    explanatory_markers = [
+    # These phrases always mean "go to web" — never treat as chart-only
+    always_web_triggers = [
+        "latest", "recent", "today", "news", "trend", "trends",
+        "search web", "search the web", "search online", "look up",
+        "find online", "current", "2024", "2025", "2026",
         "why", "reason", "reasons", "because",
         "driver", "drivers", "driving",
         "cause", "causes", "caused",
         "explain", "explains", "explaining",
         "what is behind", "what's behind", "what led to",
         "why is", "why are",
-    ]
-    if any(x in user_text for x in explanatory_markers):
-        return False
-
-    chart_excel_markers = [
-        "chart", "graph", "plot", "visual", "figure",
-        "excel", "spreadsheet", "sheet", "workbook",
-        "data", "dataset",
-        "current view", "this view", "selected filters", "current filters",
-        "current chart", "this chart", "shown here", "shown in the chart",
-        "from the chart", "from this chart", "from the data", "from excel",
-    ]
-    external_markers = [
-        "web", "internet", "online", "source", "sources", "citation", "citations",
-        "reference", "references", "latest", "recent", "currently", "today", "news",
-        "market trend", "industry trend", "trend", "trends", "macro",
+        "web", "internet", "online", "source", "sources",
+        "citation", "citations", "reference", "references",
+        "market trend", "industry trend", "macro",
         "competitor", "external", "validate", "verify", "confirm",
         "regulation", "policy", "announcement", "announced",
         "released", "launch", "public source",
     ]
+    if any(x in user_text for x in always_web_triggers):
+        return False
 
-    has_chart_excel = any(x in user_text for x in chart_excel_markers)
-    has_external = any(x in user_text for x in external_markers)
-
-    if has_chart_excel and not has_external:
-        return True
+    # These phrases mean "answer from chart/data only"
+    chart_excel_markers = [
+        "chart", "graph", "plot", "visual", "figure",
+        "excel", "spreadsheet", "sheet", "workbook",
+        "current view", "this view", "selected filters", "current filters",
+        "current chart", "this chart", "shown here", "shown in the chart",
+        "from the chart", "from this chart", "from the data", "from excel",
+    ]
 
     explicit_dataset_only = [
-        "only from the chart",
-        "only from chart",
-        "only from the data",
-        "only from data",
-        "only from excel",
-        "only from the spreadsheet",
-        "based only on the chart",
-        "based only on the data",
-        "using only the chart",
-        "using only the data",
+        "only from the chart", "only from chart",
+        "only from the data", "only from data",
+        "only from excel", "only from the spreadsheet",
+        "based only on the chart", "based only on the data",
+        "using only the chart", "using only the data",
         "using only excel",
     ]
+
     if any(x in user_text for x in explicit_dataset_only):
+        return True
+
+    # Only treat as chart-only if it has chart markers but NO external/web intent
+    has_chart = any(x in user_text for x in chart_excel_markers)
+    if has_chart:
         return True
 
     return False
@@ -628,10 +626,14 @@ def query_plan_tool_schema() -> Dict[str, Any]:
     }
 
 
+# Replace _tools_nested and _tools_flat in excel_assistant.py with these versions.
+# The key fix: always include "name" at the top level for function tools.
+
 def _tools_nested(mode: str, web_name: WebNameMode) -> List[Dict[str, Any]]:
     tools: List[Dict[str, Any]] = [
         {
             "type": "function",
+            "name": "run_query",          # ← always include at top level
             "function": {
                 "name": "run_query",
                 "description": (
@@ -654,7 +656,7 @@ def _tools_flat(mode: str, web_name: WebNameMode) -> List[Dict[str, Any]]:
     tools: List[Dict[str, Any]] = [
         {
             "type": "function",
-            "name": "run_query",
+            "name": "run_query",          # ← always include at top level
             "description": (
                 "Query a pandas DataFrame ('Data (full)' or 'Data (current view)') using a structured plan. "
                 "Use this for any numeric/table answers. Returns scalars or tables."
@@ -696,6 +698,7 @@ def _build_input_from_messages(messages: List[Dict[str, Any]]) -> Tuple[str, Lis
     return instructions, input_list
 
 
+
 def _responses_create(
     input_list: List[Dict[str, Any]],
     instructions: str,
@@ -711,6 +714,7 @@ def _responses_create(
     elif mode == "web" and force_web_search:
         tool_choice = {"type": "web_search"}
 
+    # Try with tool_choice as specified first
     try:
         return client.responses.create(
             model=OPENAI_MODEL,
@@ -721,35 +725,43 @@ def _responses_create(
         )
     except Exception as e:
         msg = str(e)
-        web_mode_tool_error = (
-            mode == "web"
-            and (
-                "discriminator" in msg
-                or "typing.Union" in msg
-                or "web_search" in msg
-                or "tools" in msg
-            )
+
+        # If tool_choice web_search failed, retry with "auto" but KEEP web search tool
+        if mode == "web" and isinstance(tool_choice, dict) and tool_choice.get("type") == "web_search":
+            try:
+                return client.responses.create(
+                    model=OPENAI_MODEL,
+                    instructions=instructions,
+                    input=input_list,
+                    tools=tools,   # keep web search tool in list
+                    tool_choice="auto",
+                )
+            except Exception as e2:
+                msg = str(e2)
+
+        # Only strip web search as absolute last resort if it's a web_search-specific error
+        web_tool_error = (
+            "discriminator" in msg
+            or "typing.Union" in msg
+            or ("web_search" in msg and "tools" in msg)
         )
 
-        if not web_mode_tool_error:
+        if not web_tool_error:
             raise
 
+        # Last resort: strip web search tool
         fallback_tools = [
             t for t in tools
             if not (isinstance(t, dict) and t.get("type") == "web_search")
         ]
-
-        fallback_tool_choice: Union[str, Dict[str, Any]] = tool_choice
-        if isinstance(fallback_tool_choice, dict) and fallback_tool_choice.get("type") == "web_search":
-            fallback_tool_choice = "auto"
-
         return client.responses.create(
             model=OPENAI_MODEL,
             instructions=instructions,
             input=input_list,
             tools=fallback_tools,
-            tool_choice=fallback_tool_choice,
+            tool_choice="auto",
         )
+
 
 
 def call_model_responses_adaptive(
@@ -760,11 +772,12 @@ def call_model_responses_adaptive(
     force_web_search: bool = False,
     tool_choice_override: Optional[Union[str, Dict[str, Any]]] = None,
 ) -> Tuple[Any, ToolSchema, WebNameMode]:
+    # Always try flat+named first — this API version requires tools[N].name
     candidates: List[Tuple[ToolSchema, WebNameMode]] = [
-        ("nested", "none"),
-        ("flat", "none"),
         ("flat", "named"),
         ("nested", "named"),
+        ("flat", "none"),
+        ("nested", "none"),
     ]
 
     last_err: Optional[Exception] = None
@@ -784,12 +797,18 @@ def call_model_responses_adaptive(
             last_err = e
             msg = str(e)
 
-            if _is_missing_tools_name_error(msg) or _is_unknown_tools_name_error(msg):
+            # Always retry on tools-related errors
+            if (
+                "tools" in msg
+                or "web_search" in msg
+                or "function" in msg
+                or "missing_required_parameter" in msg
+                or "unknown_parameter" in msg
+                or "invalid_request" in msg
+            ):
                 continue
 
-            if "tools" in msg or "web_search" in msg or "function" in msg:
-                continue
-
+            # Non-tools error — stop retrying
             break
 
     raise last_err if last_err else RuntimeError("Unknown error calling OpenAI Responses API.")
@@ -842,6 +861,81 @@ def _extract_url_citations(resp: Any) -> List[Dict[str, str]]:
     return deduped
 
 
+# Add this function just before tool_loop_streamlit in excel_assistant.py
+
+def _sanitize_input_list(input_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Remove orphaned function_call items that have no matching function_call_output.
+    The OpenAI Responses API requires every function_call to have a corresponding
+    function_call_output in the same request. When history grows long this breaks.
+    Strategy: keep only user/assistant text messages from history, drop all
+    tool call/output items from previous turns — they've already been processed.
+    """
+    cleaned = []
+    # Collect call_ids that have outputs
+    output_ids: set = set()
+    for item in input_list:
+        itype = item.get("type") if isinstance(item, dict) else getattr(item, "type", None)
+        if itype == "function_call_output":
+            cid = item.get("call_id") if isinstance(item, dict) else getattr(item, "call_id", None)
+            if cid:
+                output_ids.add(cid)
+
+    for item in input_list:
+        itype = item.get("type") if isinstance(item, dict) else getattr(item, "type", None)
+        role  = item.get("role") if isinstance(item, dict) else getattr(item, "role", None)
+
+        # Always keep user/assistant text messages
+        if role in ("user", "assistant") and itype is None:
+            cleaned.append(item)
+            continue
+
+        # Keep function_call only if it has a matching output
+        if itype == "function_call":
+            cid = item.get("call_id") if isinstance(item, dict) else getattr(item, "call_id", None)
+            if cid and cid in output_ids:
+                cleaned.append(item)
+            # else: orphaned function call — drop it
+            continue
+
+        # Keep function_call_output only if its call was kept
+        if itype == "function_call_output":
+            cid = item.get("call_id") if isinstance(item, dict) else getattr(item, "call_id", None)
+            if cid and cid in output_ids:
+                cleaned.append(item)
+            continue
+
+        # Keep everything else (web_search_call etc.)
+        cleaned.append(item)
+
+    return cleaned
+
+
+# Also add this helper to trim history when it gets too long
+def _trim_input_list(input_list: List[Dict[str, Any]], max_user_assistant: int = 20) -> List[Dict[str, Any]]:
+    """
+    When conversation grows very long, keep only the most recent N user/assistant
+    exchanges to avoid token limit and orphaned tool call issues.
+    Always keeps the full current turn (last user message onwards).
+    """
+    # Separate text messages from tool items
+    text_items = [
+        (i, item) for i, item in enumerate(input_list)
+        if (item.get("role") if isinstance(item, dict) else getattr(item, "role", None))
+        in ("user", "assistant")
+        and (item.get("type") if isinstance(item, dict) else getattr(item, "type", None)) is None
+    ]
+
+    if len(text_items) <= max_user_assistant:
+        return input_list
+
+    # Keep only last max_user_assistant text messages
+    keep_from_idx = text_items[-max_user_assistant][0]
+
+    # Rebuild: keep items from keep_from_idx onwards
+    trimmed = input_list[keep_from_idx:]
+    return trimmed
+
 # -------------------------------------------------------------------
 # Main tool loop (for Streamlit)
 # -------------------------------------------------------------------
@@ -865,6 +959,16 @@ def tool_loop_streamlit(
     chart_excel_only_query = _looks_like_chart_or_excel_only_query(messages)
 
     while True:
+        # ── Sanitize & trim history before every API call ──────────────────
+        input_list = _sanitize_input_list(input_list)
+        input_list = _trim_input_list(input_list, max_user_assistant=20)
+
+        import logging as _log
+        _log.getLogger("cemiq.chat").info(
+            f"DEBUG: mode={mode} chart_excel_only={chart_excel_only_query} "
+            f"used_web={used_web} forced_first_web={forced_first_web} "
+            f"force_web_search={force_web_search}"
+    )
         should_force = False
         if mode == "web":
             if not chart_excel_only_query:
@@ -1029,19 +1133,30 @@ def tool_loop_streamlit(
         if not _user_wants_exact_numbers(messages):
             final_text = _round_thousands_in_text_sic_safe(final_text)
 
-        if mode == "web" and not chart_excel_only_query and should_force and not used_web:
+        final_text = getattr(resp, "output_text", "") or ""
+
+        citations: List[Dict[str, str]] = []
+        if mode == "web" and not chart_excel_only_query:
+            citations = _extract_url_citations(resp)
+            if citations:
+                used_web = True
+
+        if not _user_wants_exact_numbers(messages):
+            final_text = _round_thousands_in_text_sic_safe(final_text)
+
+        # Only show error if we have NO answer at all AND web truly failed
+        if mode == "web" and not chart_excel_only_query and not final_text.strip():
             final_text = (
-                "I couldn't run a web search in this environment, so I can't provide citable sources. "
-                "If web_search is disabled for your OpenAI project, enable it or use dataset mode."
+                "I wasn't able to retrieve information for this query. "
+                "Please try again or switch to dataset mode."
             )
-        elif mode == "web" and used_web and not citations:
-            pass
         elif citations:
-            lines = [final_text.strip(), "", "Sources:"]
+            lines = [final_text.strip(), "", "**Sources:**"]
             for i, c in enumerate(citations, start=1):
                 title = c.get("title") or c["url"]
-                lines.append(f"[{i}] {title}\n{c['url']}")
+                lines.append(f"[{i}] [{title}]({c['url']})")
             final_text = "\n".join(lines).strip()
+        # If no citations but we have an answer — just return the answer as-is (no error)
 
         updated_messages: List[Dict[str, Any]] = []
         if instructions:

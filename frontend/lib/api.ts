@@ -261,13 +261,15 @@ export const getExecSummary = (
   );
 
 // ── Chat ──────────────────────────────────────────────────────────────────────
+import type { ChatApiResponse } from "./types";
+
 export const sendChat = (payload: {
-  messages: ChatMessage[];
+  messages: { role: string; content: string }[];
   current_filters: Record<string, unknown>;
   chart_context: Record<string, unknown>;
   mode?: "dataset" | "web";
   data_scope?: string;
-}) => chatApi.post<{ answer: string }>("/chat/", payload);
+}) => chatApi.post<ChatApiResponse>("/chat/", payload);
 
 // ── Export / think-cell ───────────────────────────────────────────────────────
 export const exportPptx = (payload: {

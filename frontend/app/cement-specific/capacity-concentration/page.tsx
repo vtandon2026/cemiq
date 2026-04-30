@@ -1,155 +1,551 @@
+// "use client";
+// // PATH: frontend/app/cement-specific/ma-deals/page.tsx
+// import { useEffect, useState, useCallback } from "react";
+// import PageHeader from "@/components/layout/PageHeader";
+// import Sidebar, {
+//   FilterLabel, FilterCheckbox, FilterDivider,
+// } from "@/components/layout/Sidebar";
+// import MaDealsChart, { type MaDealRow } from "@/components/charts/MaDealsChart";
+// import ChatPanel from "@/components/chat/ChatPanel";
+// import ChartActions from "@/components/ui/ChartActions";
+// import { downloadBlob, BAIN_RED } from "@/lib/chartHelpers";
+// import { exportPptx } from "@/lib/api";
+
+// const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+// interface Meta {
+//   year_min: number; year_max: number;
+//   deal_regions: string[]; target_regions: string[];
+//   deal_statuses: string[]; deal_techniques: string[];
+//   value_min: number; value_max: number;
+// }
+
+// interface TableRow {
+//   "GIB Deal #": string;
+//   Acquiror: string;
+//   Divestor: string;
+//   "Target Region (Primary)": string;
+//   "Deal Value USD (m)": number | null;
+//   "Deal Status": string;
+//   "Deal Technique": string;
+//   "Pricing/Completion Date": string;
+// }
+
+// async function apiFetch(path: string, body?: unknown) {
+//   const r = await fetch(`${BASE}${path}`, {
+//     method: body ? "POST" : "GET",
+//     headers: { "Content-Type": "application/json" },
+//     body: body ? JSON.stringify(body) : undefined,
+//   });
+//   return r.json();
+// }
+
+// export default function MaDealsPage() {
+//   // Meta
+//   const [meta, setMeta] = useState<Meta | null>(null);
+
+//   // Filters
+//   const [yearMin, setYearMin]               = useState(1997);
+//   const [yearMax, setYearMax]               = useState(2024);
+//   const [selRegions, setSelRegions]         = useState<Set<string>>(new Set());
+//   const [selTargetRegs, setSelTargetRegs]   = useState<Set<string>>(new Set());
+//   const [selStatuses, setSelStatuses]       = useState<Set<string>>(new Set());
+//   const [selTechniques, setSelTechniques]   = useState<Set<string>>(new Set());
+//   const [minValue, setMinValue]             = useState(0);
+
+//   // Data
+//   const [chartData, setChartData]   = useState<MaDealRow[]>([]);
+//   const [tableData, setTableData]   = useState<TableRow[]>([]);
+//   const [loading, setLoading]       = useState(false);
+//   const [exporting, setExporting]   = useState(false);
+//   const [showTable, setShowTable]   = useState(false);
+//   const [chartCtx, setChartCtx]     = useState<Record<string, unknown>>({});
+
+//   // ── Load meta ──────────────────────────────────────────────────────────────
+//   useEffect(() => {
+//     apiFetch("/cement-specific/ma-deals/meta").then((m: Meta) => {
+//       setMeta(m);
+//       setYearMin(m.year_min);
+//       setYearMax(m.year_max);
+//       setSelRegions(new Set(m.deal_regions));
+//       setSelTargetRegs(new Set(m.target_regions));
+//       setSelStatuses(new Set(m.deal_statuses));
+//       setSelTechniques(new Set(m.deal_techniques));
+//       setMinValue(0);
+//     }).catch(err => console.error("Failed to load meta:", err));
+//   }, []);
+
+//   // ── Build request body ─────────────────────────────────────────────────────
+//   const buildBody = useCallback(() => {
+//     if (!meta) return null;
+//     return {
+//       year_min:        yearMin,
+//       year_max:        yearMax,
+//       deal_regions:    selRegions.size === meta.deal_regions.length ? null : [...selRegions],
+//       target_regions:  selTargetRegs.size === meta.target_regions.length ? null : [...selTargetRegs],
+//       deal_statuses:   selStatuses.size === meta.deal_statuses.length ? null : [...selStatuses],
+//       deal_techniques: selTechniques.size === meta.deal_techniques.length ? null : [...selTechniques],
+//       min_deal_value:  minValue > 0 ? minValue : null,
+//     };
+//   }, [meta, yearMin, yearMax, selRegions, selTargetRegs, selStatuses, selTechniques, minValue]);
+
+//   // ── Fetch chart data ───────────────────────────────────────────────────────
+//   const load = useCallback(() => {
+//     const body = buildBody();
+//     if (!body) return;
+//     setLoading(true);
+//     apiFetch("/cement-specific/ma-deals/chart", body)
+//       .then((res: { data: MaDealRow[] }) => {
+//         setChartData(res.data);
+//         setChartCtx(body);
+//       })
+//       .finally(() => setLoading(false));
+//   }, [buildBody]);
+
+//   useEffect(() => { load(); }, [load]);
+
+//   // ── Fetch table data when opened ───────────────────────────────────────────
+//   useEffect(() => {
+//     if (!showTable) return;
+//     const body = buildBody();
+//     if (!body) return;
+//     apiFetch("/cement-specific/ma-deals/table", body)
+//       .then((res: { data: TableRow[] }) => setTableData(res.data));
+//   }, [showTable, buildBody]);
+
+//   // ── Toggle helpers ─────────────────────────────────────────────────────────
+//   const toggle = (set: Set<string>, val: string, checked: boolean): Set<string> => {
+//     const next = new Set(set);
+//     checked ? next.add(val) : next.delete(val);
+//     return next;
+//   };
+
+//   // ── CSV ────────────────────────────────────────────────────────────────────
+//   const downloadCsv = () => {
+//     const header = "Year,Deal Value ($B),Deal Count";
+//     const rows = chartData.map(d => `${d.year},${d.deal_value_b ?? ""},${d.deal_count}`);
+//     downloadBlob(new Blob([[header, ...rows].join("\n")], { type: "text/csv" }), "ma_deals.csv");
+//   };
+
+//   // ── PPT export ─────────────────────────────────────────────────────────────
+//   const exportPpt = async () => {
+//     if (!chartData.length) return;
+//     setExporting(true);
+//     try {
+//       // Template: dual-axis bar+line
+//       // Row 0 (header)       : null | year1 | year2 | ...
+//       // Row 1 (Deal Value)   : {string: "Deal value"} | {number: val_b} | ...
+//       // Row 2 (Deal Count)   : {string: "Deal count"} | {number: count} | ...
+//       const sorted  = [...chartData].sort((a, b) => a.year - b.year);
+//       const header  = [null, ...sorted.map(d => ({ string: String(d.year) }))];
+//       const valRow  = [{ string: "Deal value" },  ...sorted.map(d => ({ number: d.deal_value_b ?? 0 }))];
+//       const cntRow  = [{ string: "Deal count" },  ...sorted.map(d => ({ number: d.deal_count }))];
+
+//       const res = await exportPptx({
+//         template: "ma",
+//         filename: "ma_deals.pptx",
+//         data: [{ name: "MAChart", table: [header, valRow, cntRow] }],
+//       });
+
+//       downloadBlob(
+//         new Blob([res.data], { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" }),
+//         "ma_deals.pptx",
+//       );
+//     } catch (e) {
+//       console.error("PPT export failed", e);
+//     } finally {
+//       setExporting(false);
+//     }
+//   };
+
+//   const totalDeals  = chartData.reduce((s, d) => s + d.deal_count, 0);
+//   const totalValue  = chartData.reduce((s, d) => s + (d.deal_value_b ?? 0), 0);
+
+//   return (
+//     <div style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+//       <PageHeader
+//         title="Cement Industry M&A Activity"
+//         subtitle="Cement Specific · Dealogic · Deal Value & Count by Year"
+//       />
+
+//       <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+
+//         {/* ── Sidebar ─────────────────────────────────────────────────── */}
+//         <Sidebar title="Filters">
+
+//           {/* Year range */}
+//           <div>
+//             <FilterLabel>Year Range</FilterLabel>
+//             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+//               <input type="number" value={yearMin} min={meta?.year_min} max={yearMax}
+//                 onChange={e => setYearMin(Number(e.target.value))}
+//                 style={{ width: 60, padding: "4px 6px", fontSize: 11, border: "1px solid #e2e8f0", borderRadius: 5, fontFamily: "Arial, Helvetica, sans-serif" }} />
+//               <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>
+//               <input type="number" value={yearMax} min={yearMin} max={meta?.year_max}
+//                 onChange={e => setYearMax(Number(e.target.value))}
+//                 style={{ width: 60, padding: "4px 6px", fontSize: 11, border: "1px solid #e2e8f0", borderRadius: 5, fontFamily: "Arial, Helvetica, sans-serif" }} />
+//             </div>
+//           </div>
+
+//           <FilterDivider />
+
+//           {/* Min Deal Value */}
+//           <div>
+//             <FilterLabel>Min Deal Value: <strong>${minValue}M</strong></FilterLabel>
+//             <input type="range" min={0} max={meta ? Math.min(meta.value_max, 5000) : 5000}
+//               step={50} value={minValue}
+//               onChange={e => setMinValue(Number(e.target.value))}
+//               style={{ width: "100%", accentColor: BAIN_RED, marginTop: 4 }} />
+//             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginTop: 2 }}>
+//               <span>$0</span><span>$5,000M</span>
+//             </div>
+//           </div>
+
+//           <FilterDivider />
+
+//           {/* Deal Status */}
+//           <div>
+//             <FilterLabel>Deal Status</FilterLabel>
+//             <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 4 }}>
+//               {meta?.deal_statuses.map(s => (
+//                 <FilterCheckbox key={s} label={s} checked={selStatuses.has(s)}
+//                   onChange={v => setSelStatuses(toggle(selStatuses, s, v))} />
+//               ))}
+//             </div>
+//           </div>
+
+//           <FilterDivider />
+
+//           {/* Deal Technique */}
+//           <div>
+//             <FilterLabel>Deal Technique</FilterLabel>
+//             <div style={{ maxHeight: 160, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5, marginTop: 4 }}>
+//               {meta?.deal_techniques.map(t => (
+//                 <FilterCheckbox key={t} label={t} checked={selTechniques.has(t)}
+//                   onChange={v => setSelTechniques(toggle(selTechniques, t, v))} />
+//               ))}
+//             </div>
+//           </div>
+
+//           <FilterDivider />
+
+//           {/* Deal Region */}
+//           <div>
+//             <FilterLabel>Deal Region</FilterLabel>
+//             <div style={{ maxHeight: 160, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5, marginTop: 4 }}>
+//               {meta?.deal_regions.map(r => (
+//                 <FilterCheckbox key={r} label={r} checked={selRegions.has(r)}
+//                   onChange={v => setSelRegions(toggle(selRegions, r, v))} />
+//               ))}
+//             </div>
+//           </div>
+
+//           <FilterDivider />
+
+//           {/* Target Region */}
+//           <div>
+//             <FilterLabel>Target Region</FilterLabel>
+//             <div style={{ maxHeight: 160, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5, marginTop: 4 }}>
+//               {meta?.target_regions.map(r => (
+//                 <FilterCheckbox key={r} label={r} checked={selTargetRegs.has(r)}
+//                   onChange={v => setSelTargetRegs(toggle(selTargetRegs, r, v))} />
+//               ))}
+//             </div>
+//           </div>
+
+//         </Sidebar>
+
+//         {/* ── Main content ─────────────────────────────────────────────── */}
+//         <div style={{ flex: 1, minWidth: 0, display: "flex", gap: 16 }}>
+//           <div style={{ flex: 1, minWidth: 0 }}>
+
+//             {/* Summary KPI strip */}
+//             <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+//               {[
+//                 { label: "Total Deals", value: totalDeals.toLocaleString() },
+//                 { label: "Total Value", value: `$${totalValue.toFixed(1)}B` },
+//                 { label: "Years", value: `${yearMin} – ${yearMax}` },
+//               ].map(kpi => (
+//                 <div key={kpi.label} style={{
+//                   background: "#fff", border: "1px solid #e9ecef", borderRadius: 8,
+//                   padding: "8px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+//                   flex: 1, textAlign: "center",
+//                 }}>
+//                   <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{kpi.value}</div>
+//                   <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{kpi.label}</div>
+//                 </div>
+//               ))}
+//             </div>
+
+//             {/* Chart card */}
+//             <div style={{ background: "#ffffff", border: "1px solid #e9ecef", borderRadius: 10, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+//               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 16 }}>
+//                 <div>
+//                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
+//                     Total Cement Market — Deal Value &amp; Count
+//                   </div>
+//                   <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+//                     Deal value ($B) · Deal count · {yearMin}–{yearMax}
+//                   </div>
+//                 </div>
+//                 <ChartActions
+//                   onCsv={downloadCsv}
+//                   csvDisabled={chartData.length === 0}
+//                   showPpt={true}
+//                   onPpt={exportPpt}
+//                   pptDisabled={chartData.length === 0}
+//                   pptLoading={exporting}
+//                 />
+//               </div>
+
+//               {loading ? (
+//                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: "#94a3b8", fontSize: 13 }}>
+//                   Loading…
+//                 </div>
+//               ) : (
+//                 <MaDealsChart data={chartData} height={420} />
+//               )}
+
+//               <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 8 }}>
+//                 Source: Dealogic
+//               </p>
+//             </div>
+
+//             {/* Collapsible data table */}
+//             <div style={{ marginTop: 12, background: "#ffffff", border: "1px solid #e9ecef", borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.05)", overflow: "hidden" }}>
+//               <button onClick={() => setShowTable(v => !v)} style={{
+//                 width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+//                 padding: "10px 16px", background: "none", border: "none", cursor: "pointer",
+//                 fontSize: 12, fontWeight: 600, color: "#374151", fontFamily: "Arial, Helvetica, sans-serif",
+//               }}>
+//                 <span>Deal details ({tableData.length} deals shown)</span>
+//                 <span style={{ color: "#94a3b8", fontSize: 16 }}>{showTable ? "▲" : "▼"}</span>
+//               </button>
+
+//               {showTable && (
+//                 <div style={{ overflowX: "auto", maxHeight: 300, overflowY: "auto", borderTop: "1px solid #f1f5f9" }}>
+//                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, fontFamily: "Arial, Helvetica, sans-serif" }}>
+//                     <thead>
+//                       <tr style={{ background: "#f8fafc" }}>
+//                         {["Year", "Acquiror", "Divestor", "Target Region", "Value ($M)", "Status", "Technique"].map(h => (
+//                           <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600, fontSize: 11, color: "#64748b", borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>{h}</th>
+//                         ))}
+//                       </tr>
+//                     </thead>
+//                     <tbody>
+//                       {tableData.map((row, i) => (
+//                         <tr key={i} style={{ background: i % 2 === 0 ? "#ffffff" : "#fafafa" }}>
+//                           <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#374151", whiteSpace: "nowrap" }}>
+//                             {row["Pricing/Completion Date"]?.slice(0, 10)}
+//                           </td>
+//                           <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#1e293b", fontWeight: 600, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+//                             {row["Acquiror"]}
+//                           </td>
+//                           <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#374151", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+//                             {row["Divestor"]}
+//                           </td>
+//                           <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#475569", whiteSpace: "nowrap" }}>
+//                             {row["Target Region (Primary)"]}
+//                           </td>
+//                           <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#374151", textAlign: "right", whiteSpace: "nowrap" }}>
+//                             {row["Deal Value USD (m)"] != null ? `$${Number(row["Deal Value USD (m)"]).toLocaleString()}` : "—"}
+//                           </td>
+//                           <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9" }}>
+//                             <span style={{
+//                               background: row["Deal Status"] === "Completed" ? "#f0fdf4" : "#fff7ed",
+//                               color: row["Deal Status"] === "Completed" ? "#16a34a" : "#ea580c",
+//                               padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600,
+//                             }}>
+//                               {row["Deal Status"]}
+//                             </span>
+//                           </td>
+//                           <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#475569", whiteSpace: "nowrap" }}>
+//                             {row["Deal Technique"]}
+//                           </td>
+//                         </tr>
+//                       ))}
+//                     </tbody>
+//                   </table>
+//                 </div>
+//               )}
+//             </div>
+//           </div>
+
+//           {/* ── Chat ───────────────────────────────────────────────────── */}
+//           <div style={{ width: 288, flexShrink: 0 }}>
+//             <ChatPanel
+//               currentFilters={{ yearMin, yearMax, selRegions: [...selRegions], selStatuses: [...selStatuses], minValue }}
+//               chartContext={chartCtx}
+//               dataScope="ma_deals"
+//               title="M&A Lens"
+//             />
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+
+
+
 "use client";
-// PATH: frontend/app/cement-specific/ma-deals/page.tsx
+// PATH: frontend/app/cement-specific/capacity-concentration/page.tsx
 import { useEffect, useState, useCallback } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import Sidebar, {
-  FilterLabel, FilterCheckbox, FilterDivider,
+  FilterLabel, FilterSelect, FilterCheckbox, FilterDivider,
 } from "@/components/layout/Sidebar";
-import MaDealsChart, { type MaDealRow } from "@/components/charts/MaDealsChart";
+import CapacityConcentrationChart, {
+  type ConcentrationRow,
+} from "@/components/charts/CapacityConcentrationChart";
 import ChatPanel from "@/components/chat/ChatPanel";
 import ChartActions from "@/components/ui/ChartActions";
-import { downloadBlob, BAIN_RED } from "@/lib/chartHelpers";
+import { downloadBlob } from "@/lib/chartHelpers";
 import { exportPptx } from "@/lib/api";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-interface Meta {
-  year_min: number; year_max: number;
-  deal_regions: string[]; target_regions: string[];
-  deal_statuses: string[]; deal_techniques: string[];
-  value_min: number; value_max: number;
+async function fetchMeta(): Promise<{ statuses: string[]; countries: string[] }> {
+  const r = await fetch(`${BASE}/cement-specific/capacity-concentration/meta`);
+  return r.json();
 }
 
-interface TableRow {
-  "GIB Deal #": string;
-  Acquiror: string;
-  Divestor: string;
-  "Target Region (Primary)": string;
-  "Deal Value USD (m)": number | null;
-  "Deal Status": string;
-  "Deal Technique": string;
-  "Pricing/Completion Date": string;
-}
-
-async function apiFetch(path: string, body?: unknown) {
-  const r = await fetch(`${BASE}${path}`, {
-    method: body ? "POST" : "GET",
+async function fetchChart(body: {
+  statuses: string[] | null;
+  countries: string[] | null;
+  top_n_countries: number;
+}): Promise<{ data: ConcentrationRow[] }> {
+  const r = await fetch(`${BASE}/cement-specific/capacity-concentration/chart`, {
+    method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
+    body: JSON.stringify(body),
   });
   return r.json();
 }
 
-export default function MaDealsPage() {
+const DEFAULT_COUNTRIES = [
+  "Nigeria", "Australia", "Algeria", "Japan", "Thailand",
+  "Indonesia", "Mexico", "Canada", "France", "United Kingdom",
+  "Italy", "Poland", "Brazil", "Spain", "Germany",
+  "Egypt", "India", "United States",
+];
+
+export default function CapacityConcentrationPage() {
   // Meta
-  const [meta, setMeta] = useState<Meta | null>(null);
+  const [allStatuses, setAllStatuses]   = useState<string[]>([]);
+  const [allCountries, setAllCountries] = useState<string[]>([]);
 
   // Filters
-  const [yearMin, setYearMin]               = useState(1997);
-  const [yearMax, setYearMax]               = useState(2024);
-  const [selRegions, setSelRegions]         = useState<Set<string>>(new Set());
-  const [selTargetRegs, setSelTargetRegs]   = useState<Set<string>>(new Set());
-  const [selStatuses, setSelStatuses]       = useState<Set<string>>(new Set());
-  const [selTechniques, setSelTechniques]   = useState<Set<string>>(new Set());
-  const [minValue, setMinValue]             = useState(0);
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set());
+  const [topN, setTopN]                         = useState(10);
+  const [customCountries, setCustomCountries]   = useState<string[]>(DEFAULT_COUNTRIES);
+  const [addCountry, setAddCountry]             = useState("");
 
   // Data
-  const [chartData, setChartData]   = useState<MaDealRow[]>([]);
-  const [tableData, setTableData]   = useState<TableRow[]>([]);
-  const [loading, setLoading]       = useState(false);
-  const [exporting, setExporting]   = useState(false);
-  const [showTable, setShowTable]   = useState(false);
-  const [chartCtx, setChartCtx]     = useState<Record<string, unknown>>({});
+  const [chartData, setChartData] = useState<ConcentrationRow[]>([]);
+  const [loading, setLoading]     = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [chartCtx, setChartCtx]  = useState<Record<string, unknown>>({});
+  const [showTable, setShowTable] = useState(false);
 
-  // ── Load meta ──────────────────────────────────────────────────────────────
+  // ── Load meta once ─────────────────────────────────────────────────────────
   useEffect(() => {
-    apiFetch("/cement-specific/ma-deals/meta").then((m: Meta) => {
-      setMeta(m);
-      setYearMin(m.year_min);
-      setYearMax(m.year_max);
-      setSelRegions(new Set(m.deal_regions));
-      setSelTargetRegs(new Set(m.target_regions));
-      setSelStatuses(new Set(m.deal_statuses));
-      setSelTechniques(new Set(m.deal_techniques));
-      setMinValue(0);
-    }).catch(err => console.error("Failed to load meta:", err));
+    fetchMeta()
+      .then(({ statuses, countries }) => {
+        const s = statuses ?? [];
+        const c = countries ?? [];
+        setAllStatuses(s);
+        setAllCountries(c);
+        const def = s.includes("operating") ? new Set(["operating"]) : new Set(s);
+        setSelectedStatuses(def);
+      })
+      .catch(err => console.error("Failed to load meta:", err));
   }, []);
 
-  // ── Build request body ─────────────────────────────────────────────────────
-  const buildBody = useCallback(() => {
-    if (!meta) return null;
-    return {
-      year_min:        yearMin,
-      year_max:        yearMax,
-      deal_regions:    selRegions.size === meta.deal_regions.length ? null : [...selRegions],
-      target_regions:  selTargetRegs.size === meta.target_regions.length ? null : [...selTargetRegs],
-      deal_statuses:   selStatuses.size === meta.deal_statuses.length ? null : [...selStatuses],
-      deal_techniques: selTechniques.size === meta.deal_techniques.length ? null : [...selTechniques],
-      min_deal_value:  minValue > 0 ? minValue : null,
-    };
-  }, [meta, yearMin, yearMax, selRegions, selTargetRegs, selStatuses, selTechniques, minValue]);
-
-  // ── Fetch chart data ───────────────────────────────────────────────────────
+  // ── Fetch chart data whenever filters change ───────────────────────────────
   const load = useCallback(() => {
-    const body = buildBody();
-    if (!body) return;
+    if (!allStatuses.length) return;
     setLoading(true);
-    apiFetch("/cement-specific/ma-deals/chart", body)
-      .then((res: { data: MaDealRow[] }) => {
+    const statuses = selectedStatuses.size === allStatuses.length
+      ? null
+      : [...selectedStatuses];
+    const countries = customCountries.length ? customCountries : null;
+    fetchChart({ statuses, countries, top_n_countries: topN })
+      .then(res => {
         setChartData(res.data);
-        setChartCtx(body);
+        setChartCtx({
+          chart_type: "mekko_100pct",
+          chart_title: "Top 3 Share of Local Production Capacity",
+          data_scope: "cement_specific",
+          bar_color_top3: "#CC0000",
+          bar_color_other: "#C8C8C8",
+          x_axis: "Countries",
+          y_axis: "Top 3 share (%)",
+          bar_width_metric: "Total capacity (Mt)",
+          countries_shown: res.data.map(r => r.country),
+          filters: { statuses, countries, topN },
+          data_summary: res.data.slice(0, 10).map(r => ({
+            country: r.country,
+            total_capacity_mt: r.total_capacity,
+            top3_share_pct: r.top3_share,
+            top3_owners: r.top3_owners.map(o => o.owner).join(", "),
+          })),
+        });
       })
       .finally(() => setLoading(false));
-  }, [buildBody]);
+  }, [allStatuses, selectedStatuses, customCountries, topN]);
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Fetch table data when opened ───────────────────────────────────────────
-  useEffect(() => {
-    if (!showTable) return;
-    const body = buildBody();
-    if (!body) return;
-    apiFetch("/cement-specific/ma-deals/table", body)
-      .then((res: { data: TableRow[] }) => setTableData(res.data));
-  }, [showTable, buildBody]);
-
-  // ── Toggle helpers ─────────────────────────────────────────────────────────
-  const toggle = (set: Set<string>, val: string, checked: boolean): Set<string> => {
-    const next = new Set(set);
-    checked ? next.add(val) : next.delete(val);
-    return next;
+  // ── Toggle status checkbox ─────────────────────────────────────────────────
+  const toggleStatus = (s: string, checked: boolean) => {
+    setSelectedStatuses(prev => {
+      const next = new Set(prev);
+      checked ? next.add(s) : next.delete(s);
+      return next;
+    });
   };
 
-  // ── CSV ────────────────────────────────────────────────────────────────────
-  const downloadCsv = () => {
-    const header = "Year,Deal Value ($B),Deal Count";
-    const rows = chartData.map(d => `${d.year},${d.deal_value_b ?? ""},${d.deal_count}`);
-    downloadBlob(new Blob([[header, ...rows].join("\n")], { type: "text/csv" }), "ma_deals.csv");
+  // ── Country management ─────────────────────────────────────────────────────
+  const addCustomCountry = () => {
+    if (addCountry && !customCountries.includes(addCountry)) {
+      setCustomCountries(prev => [...prev, addCountry]);
+    }
+    setAddCountry("");
   };
+
+  const removeCountry = (c: string) =>
+    setCustomCountries(prev => prev.filter(x => x !== c));
 
   // ── PPT export ─────────────────────────────────────────────────────────────
   const exportPpt = async () => {
     if (!chartData.length) return;
     setExporting(true);
+    const tc = (v: string | number | null) =>
+      v == null ? null : typeof v === "number" ? { number: v } : { string: v };
     try {
-      // Template: dual-axis bar+line
-      // Row 0 (header)       : null | year1 | year2 | ...
-      // Row 1 (Deal Value)   : {string: "Deal value"} | {number: val_b} | ...
-      // Row 2 (Deal Count)   : {string: "Deal count"} | {number: count} | ...
-      const sorted  = [...chartData].sort((a, b) => a.year - b.year);
-      const header  = [null, ...sorted.map(d => ({ string: String(d.year) }))];
-      const valRow  = [{ string: "Deal value" },  ...sorted.map(d => ({ number: d.deal_value_b ?? 0 }))];
-      const cntRow  = [{ string: "Deal count" },  ...sorted.map(d => ({ number: d.deal_count }))];
+      const sorted    = [...chartData].sort((a, b) => b.top3_share - a.top3_share);
+      const header    = [null, ...sorted.map(r => ({ string: r.country }))];
+      // Send absolute capacity values — think-cell computes width + % automatically
+      // Template has 3 series; we use Series 1 = Top 3, Series 2 = Other, Series 3 = null
+      const top3Row   = [{ string: "Top 3" }, ...sorted.map(r => ({ number: r.top3_capacity }))];
+      const otherRow  = [{ string: "Other" }, ...sorted.map(r => ({ number: parseFloat((r.total_capacity - r.top3_capacity).toFixed(2)) }))];
+      const series3   = [{ string: "" },      ...sorted.map(() => null)];
 
       const res = await exportPptx({
-        template: "ma",
-        filename: "ma_deals.pptx",
-        data: [{ name: "MAChart", table: [header, valRow, cntRow] }],
+        template: "mekko_rms",
+        filename: "capacity_concentration.pptx",
+        data: [{ name: "MekkoChart", table: [header, top3Row, otherRow, series3] }],
       });
-
       downloadBlob(
         new Blob([res.data], { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" }),
-        "ma_deals.pptx",
+        "capacity_concentration.pptx",
       );
     } catch (e) {
       console.error("PPT export failed", e);
@@ -158,14 +554,24 @@ export default function MaDealsPage() {
     }
   };
 
-  const totalDeals  = chartData.reduce((s, d) => s + d.deal_count, 0);
-  const totalValue  = chartData.reduce((s, d) => s + (d.deal_value_b ?? 0), 0);
+  // ── CSV download ───────────────────────────────────────────────────────────
+  const downloadCsv = () => {
+    const header = "Country,Total Capacity (Mt),Top3 Capacity (Mt),Top3 Share (%),Other Share (%),Top3 Owner 1,Top3 Owner 2,Top3 Owner 3";
+    const rows = chartData.map(r => {
+      const owners = r.top3_owners.map(o => o.owner);
+      return `${r.country},${r.total_capacity},${r.top3_capacity},${r.top3_share},${r.other_share},${owners[0] ?? ""},${owners[1] ?? ""},${owners[2] ?? ""}`;
+    });
+    downloadBlob(
+      new Blob([[header, ...rows].join("\n")], { type: "text/csv" }),
+      "capacity_concentration.csv",
+    );
+  };
 
   return (
     <div style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
       <PageHeader
-        title="Cement Industry M&A Activity"
-        subtitle="Cement Specific · Dealogic · Deal Value & Count by Year"
+        title="Top 3 Share of Local Production Capacity"
+        subtitle="Cement Specific · GEM Tracker · Capacity Concentration by Country"
       />
 
       <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
@@ -173,119 +579,134 @@ export default function MaDealsPage() {
         {/* ── Sidebar ─────────────────────────────────────────────────── */}
         <Sidebar title="Filters">
 
-          {/* Year range */}
+          {/* Operating status */}
           <div>
-            <FilterLabel>Year Range</FilterLabel>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-              <input type="number" value={yearMin} min={meta?.year_min} max={yearMax}
-                onChange={e => setYearMin(Number(e.target.value))}
-                style={{ width: 60, padding: "4px 6px", fontSize: 11, border: "1px solid #e2e8f0", borderRadius: 5, fontFamily: "Arial, Helvetica, sans-serif" }} />
-              <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>
-              <input type="number" value={yearMax} min={yearMin} max={meta?.year_max}
-                onChange={e => setYearMax(Number(e.target.value))}
-                style={{ width: 60, padding: "4px 6px", fontSize: 11, border: "1px solid #e2e8f0", borderRadius: 5, fontFamily: "Arial, Helvetica, sans-serif" }} />
-            </div>
-          </div>
-
-          <FilterDivider />
-
-          {/* Min Deal Value */}
-          <div>
-            <FilterLabel>Min Deal Value: <strong>${minValue}M</strong></FilterLabel>
-            <input type="range" min={0} max={meta ? Math.min(meta.value_max, 5000) : 5000}
-              step={50} value={minValue}
-              onChange={e => setMinValue(Number(e.target.value))}
-              style={{ width: "100%", accentColor: BAIN_RED, marginTop: 4 }} />
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginTop: 2 }}>
-              <span>$0</span><span>$5,000M</span>
-            </div>
-          </div>
-
-          <FilterDivider />
-
-          {/* Deal Status */}
-          <div>
-            <FilterLabel>Deal Status</FilterLabel>
-            <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 4 }}>
-              {meta?.deal_statuses.map(s => (
-                <FilterCheckbox key={s} label={s} checked={selStatuses.has(s)}
-                  onChange={v => setSelStatuses(toggle(selStatuses, s, v))} />
+            <FilterLabel>Operating Status</FilterLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+              {allStatuses.map(s => (
+                <FilterCheckbox
+                  key={s}
+                  label={s.charAt(0).toUpperCase() + s.slice(1)}
+                  checked={selectedStatuses.has(s)}
+                  onChange={v => toggleStatus(s, v)}
+                />
               ))}
             </div>
           </div>
 
           <FilterDivider />
 
-          {/* Deal Technique */}
-          <div>
-            <FilterLabel>Deal Technique</FilterLabel>
-            <div style={{ maxHeight: 160, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5, marginTop: 4 }}>
-              {meta?.deal_techniques.map(t => (
-                <FilterCheckbox key={t} label={t} checked={selTechniques.has(t)}
-                  onChange={v => setSelTechniques(toggle(selTechniques, t, v))} />
-              ))}
+          {/* Top N (only when not using custom country list) */}
+          {customCountries.length === 0 && (
+            <div>
+              <FilterLabel>Top Countries: <strong>{topN}</strong></FilterLabel>
+              <input
+                type="range" min={5} max={50} value={topN}
+                onChange={e => setTopN(Number(e.target.value))}
+                style={{ width: "100%", accentColor: "var(--bain-red)", marginTop: 4 }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginTop: 2 }}>
+                <span>5</span><span>50</span>
+              </div>
             </div>
-          </div>
+          )}
 
           <FilterDivider />
 
-          {/* Deal Region */}
+          {/* Country picker */}
           <div>
-            <FilterLabel>Deal Region</FilterLabel>
-            <div style={{ maxHeight: 160, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5, marginTop: 4 }}>
-              {meta?.deal_regions.map(r => (
-                <FilterCheckbox key={r} label={r} checked={selRegions.has(r)}
-                  onChange={v => setSelRegions(toggle(selRegions, r, v))} />
+            <FilterLabel>Countries</FilterLabel>
+
+            {/* Tag box */}
+            <div style={{
+              minHeight: 48, maxHeight: 130, overflowY: "auto",
+              border: "1px solid #e2e8f0", borderRadius: 6,
+              padding: "4px 6px", marginTop: 4, marginBottom: 6,
+              display: "flex", flexWrap: "wrap", gap: 4,
+              background: "#fafafa",
+            }}>
+              {customCountries.length === 0 && (
+                <span style={{ fontSize: 11, color: "#94a3b8", alignSelf: "center" }}>
+                  Showing top {topN} by Top-3 share
+                </span>
+              )}
+              {customCountries.map(c => (
+                <span key={c} style={{
+                  display: "inline-flex", alignItems: "center", gap: 3,
+                  background: "#fef2f2", border: "1px solid #fecaca",
+                  borderRadius: 4, padding: "2px 5px",
+                  fontSize: 10, color: "#dc2626", fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}>
+                  {c}
+                  <button
+                    onClick={() => removeCountry(c)}
+                    style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 12, lineHeight: 1, padding: 0, marginTop: 1 }}
+                  >×</button>
+                </span>
               ))}
             </div>
-          </div>
 
-          <FilterDivider />
-
-          {/* Target Region */}
-          <div>
-            <FilterLabel>Target Region</FilterLabel>
-            <div style={{ maxHeight: 160, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5, marginTop: 4 }}>
-              {meta?.target_regions.map(r => (
-                <FilterCheckbox key={r} label={r} checked={selTargetRegs.has(r)}
-                  onChange={v => setSelTargetRegs(toggle(selTargetRegs, r, v))} />
-              ))}
+            {/* Add dropdown */}
+            <div style={{ display: "flex", gap: 4 }}>
+              <FilterSelect
+                value={addCountry}
+                onChange={e => setAddCountry(e.target.value)}
+                style={{ flex: 1 }}
+              >
+                <option value="">Add country…</option>
+                {allCountries
+                  .filter(c => !customCountries.includes(c))
+                  .map(c => <option key={c}>{c}</option>)}
+              </FilterSelect>
+              <button
+                onClick={addCustomCountry}
+                disabled={!addCountry}
+                style={{
+                  padding: "6px 9px", fontSize: 12, fontWeight: 700,
+                  background: addCountry ? "#dc2626" : "#e2e8f0",
+                  color: addCountry ? "#fff" : "#94a3b8",
+                  border: "none", borderRadius: 6,
+                  cursor: addCountry ? "pointer" : "default",
+                  transition: "all 0.15s", flexShrink: 0,
+                }}
+              >+</button>
             </div>
-          </div>
 
+            {customCountries.length > 0 && (
+              <button
+                onClick={() => setCustomCountries([])}
+                style={{ marginTop: 6, fontSize: 10, color: "#94a3b8", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+              >
+                Clear all
+              </button>
+            )}
+          </div>
         </Sidebar>
 
         {/* ── Main content ─────────────────────────────────────────────── */}
         <div style={{ flex: 1, minWidth: 0, display: "flex", gap: 16 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
 
-            {/* Summary KPI strip */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-              {[
-                { label: "Total Deals", value: totalDeals.toLocaleString() },
-                { label: "Total Value", value: `$${totalValue.toFixed(1)}B` },
-                { label: "Years", value: `${yearMin} – ${yearMax}` },
-              ].map(kpi => (
-                <div key={kpi.label} style={{
-                  background: "#fff", border: "1px solid #e9ecef", borderRadius: 8,
-                  padding: "8px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-                  flex: 1, textAlign: "center",
-                }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{kpi.value}</div>
-                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{kpi.label}</div>
-                </div>
-              ))}
-            </div>
-
             {/* Chart card */}
-            <div style={{ background: "#ffffff", border: "1px solid #e9ecef", borderRadius: 10, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+            <div style={{
+              background: "#ffffff", border: "1px solid #e9ecef",
+              borderRadius: 10, padding: 16,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+            }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 16 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
-                    Total Cement Market — Deal Value &amp; Count
+                    Top 3 Producers Share of Local Capacity
                   </div>
                   <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
-                    Deal value ($B) · Deal count · {yearMin}–{yearMax}
+                    {customCountries.length > 0
+                      ? `${customCountries.length} selected countries`
+                      : `Top ${topN} countries by Top-3 share`}
+                    {" · "}
+                    {selectedStatuses.size === allStatuses.length
+                      ? "All statuses"
+                      : [...selectedStatuses].join(", ")}
                   </div>
                 </div>
                 <ChartActions
@@ -299,85 +720,104 @@ export default function MaDealsPage() {
               </div>
 
               {loading ? (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: "#94a3b8", fontSize: 13 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 260, color: "#94a3b8", fontSize: 13 }}>
                   Loading…
                 </div>
               ) : (
-                <MaDealsChart data={chartData} height={420} />
+                <CapacityConcentrationChart data={chartData} />
               )}
 
               <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 8 }}>
-                Source: Dealogic
+                Source: Global Cement &amp; Concrete Tracker, GEM (July 2025)
               </p>
             </div>
 
             {/* Collapsible data table */}
             <div style={{ marginTop: 12, background: "#ffffff", border: "1px solid #e9ecef", borderRadius: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.05)", overflow: "hidden" }}>
-              <button onClick={() => setShowTable(v => !v)} style={{
-                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "10px 16px", background: "none", border: "none", cursor: "pointer",
-                fontSize: 12, fontWeight: 600, color: "#374151", fontFamily: "Arial, Helvetica, sans-serif",
-              }}>
-                <span>Deal details ({tableData.length} deals shown)</span>
+              <button
+                onClick={() => setShowTable(v => !v)}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "10px 16px", background: "none", border: "none", cursor: "pointer",
+                  fontSize: 12, fontWeight: 600, color: "#374151", fontFamily: "Arial, Helvetica, sans-serif",
+                }}
+              >
+                <span>Data shown ({chartData.length} countries)</span>
                 <span style={{ color: "#94a3b8", fontSize: 16 }}>{showTable ? "▲" : "▼"}</span>
               </button>
 
               {showTable && (
-                <div style={{ overflowX: "auto", maxHeight: 300, overflowY: "auto", borderTop: "1px solid #f1f5f9" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, fontFamily: "Arial, Helvetica, sans-serif" }}>
-                    <thead>
-                      <tr style={{ background: "#f8fafc" }}>
-                        {["Year", "Acquiror", "Divestor", "Target Region", "Value ($M)", "Status", "Technique"].map(h => (
-                          <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600, fontSize: 11, color: "#64748b", borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tableData.map((row, i) => (
-                        <tr key={i} style={{ background: i % 2 === 0 ? "#ffffff" : "#fafafa" }}>
-                          <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#374151", whiteSpace: "nowrap" }}>
-                            {row["Pricing/Completion Date"]?.slice(0, 10)}
-                          </td>
-                          <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#1e293b", fontWeight: 600, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {row["Acquiror"]}
-                          </td>
-                          <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#374151", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {row["Divestor"]}
-                          </td>
-                          <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#475569", whiteSpace: "nowrap" }}>
-                            {row["Target Region (Primary)"]}
-                          </td>
-                          <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#374151", textAlign: "right", whiteSpace: "nowrap" }}>
-                            {row["Deal Value USD (m)"] != null ? `$${Number(row["Deal Value USD (m)"]).toLocaleString()}` : "—"}
-                          </td>
-                          <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9" }}>
-                            <span style={{
-                              background: row["Deal Status"] === "Completed" ? "#f0fdf4" : "#fff7ed",
-                              color: row["Deal Status"] === "Completed" ? "#16a34a" : "#ea580c",
-                              padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600,
-                            }}>
-                              {row["Deal Status"]}
-                            </span>
-                          </td>
-                          <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#475569", whiteSpace: "nowrap" }}>
-                            {row["Deal Technique"]}
-                          </td>
+                <>
+                  {/* CSV download */}
+                  <div style={{ padding: "6px 16px", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "flex-end" }}>
+                    <button
+                      onClick={() => {
+                        const headers = ["Country", "Total Capacity (Mt)", "Top 3 Share (%)", "Top 3 Capacity (Mt)", "Top 3 Owner 1", "Top 3 Owner 2", "Top 3 Owner 3"];
+                        const rows = chartData.map(row => {
+                          const owners = row.top3_owners.map(o => o.owner);
+                          return [row.country, row.total_capacity.toFixed(1), row.top3_share.toFixed(1), row.top3_capacity.toFixed(1), owners[0] ?? "", owners[1] ?? "", owners[2] ?? ""];
+                        });
+                        const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))].join("\n");
+                        const blob = new Blob([csv], { type: "text/csv" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a"); a.href = url; a.download = "capacity_concentration_data.csv"; a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        fontSize: 10, color: "#475569", background: "#f8fafc",
+                        border: "1px solid #e2e8f0", borderRadius: 5,
+                        padding: "3px 8px", cursor: "pointer",
+                        fontFamily: "Arial, Helvetica, sans-serif",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = "#dc2626"; e.currentTarget.style.color = "#dc2626"; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#475569"; }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      Download CSV
+                    </button>
+                  </div>
+                  <div style={{ overflowX: "auto", maxHeight: 280, overflowY: "auto", borderTop: "1px solid #f1f5f9" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, fontFamily: "Arial, Helvetica, sans-serif" }}>
+                      <thead>
+                        <tr style={{ background: "#f8fafc" }}>
+                          {["Country", "Total Capacity (Mt)", "Top 3 Share", "Top 3 Capacity (Mt)", "Top 3 Owners"].map(h => (
+                            <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600, fontSize: 11, color: "#64748b", borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>{h}</th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {chartData.map((row, i) => (
+                          <tr key={row.country} style={{ background: i % 2 === 0 ? "#ffffff" : "#fafafa" }}>
+                            <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>{row.country}</td>
+                            <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#374151", textAlign: "right" }}>{row.total_capacity.toFixed(1)}</td>
+                            <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9" }}>
+                              <span style={{ background: "#fef2f2", color: "#dc2626", padding: "2px 7px", borderRadius: 4, fontWeight: 700, fontSize: 11 }}>
+                                {row.top3_share.toFixed(1)}%
+                              </span>
+                            </td>
+                            <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#374151", textAlign: "right" }}>{row.top3_capacity.toFixed(1)}</td>
+                            <td style={{ padding: "5px 10px", borderBottom: "1px solid #f1f5f9", color: "#475569" }}>{row.top3_owners.map(o => o.owner).join(" · ")}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
+
           </div>
 
           {/* ── Chat ───────────────────────────────────────────────────── */}
           <div style={{ width: 288, flexShrink: 0 }}>
             <ChatPanel
-              currentFilters={{ yearMin, yearMax, selRegions: [...selRegions], selStatuses: [...selStatuses], minValue }}
+              currentFilters={{ statuses: [...selectedStatuses], topN, customCountries }}
               chartContext={chartCtx}
-              dataScope="ma_deals"
-              title="M&A Lens"
+              dataScope="cement_specific"
+              title="Construct Lens"
             />
           </div>
         </div>
