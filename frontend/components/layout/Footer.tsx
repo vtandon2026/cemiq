@@ -264,6 +264,13 @@ const NAV_LINKS = [
         ],
     },
     {
+        section: "Construction Detail",
+        links: [
+            { label: "Construction Detail", href: "/construction-detail/construction-detail" },
+            { label: "World View Map", href: "construction-detail/world-view-map" },
+        ],
+    },
+    {
         section: "Supply & Production",
         links: [
             { label: "US Production Overview", href: "/supply-production/us-production-overview" },
