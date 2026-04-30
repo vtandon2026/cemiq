@@ -144,7 +144,7 @@ export default function MaDealsPage() {
       const res = await exportPptx({
         template: "ma",
         filename: "ma_deals.pptx",
-        data: [{ name: "MAChart", table: [header, valRow, cntRow] }],
+        data: [{ name: "GrowthChart", table: [header, valRow, cntRow] }],
       });
       downloadBlob(
         new Blob([res.data], { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" }),
