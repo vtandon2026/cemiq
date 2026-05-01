@@ -443,7 +443,7 @@ export default function MaDealsPage() {
           {/* ── Chat ───────────────────────────────────────────────────── */}
           <div style={{ width: 288, flexShrink: 0 }}>
             <ChatPanel
-              currentFilters={{ yearMin, yearMax, selRegions: [...selRegions], selStatuses: [...selStatuses], minValue }}
+              currentFilters={{ yearMin, yearMax, selRegions: [...selRegions], selTargetRegs: [...selTargetRegs], selStatuses: [...selStatuses], selTechniques: [...selTechniques], minValue }}
               chartContext={chartCtx}
               dataScope="ma_deals"
               title="Construct Lens"

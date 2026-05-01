@@ -107,8 +107,9 @@ def _trim_context(ctx: dict, max_chars: int = 3000) -> dict:
     if len(ctx_str) <= max_chars:
         return ctx
     # Never trim these critical fields
-    protected = {"all_years_data", "CRITICAL_FACTS", "highest_value_year",
-                 "highest_count_year", "data_summary", "INSTRUCTIONS"}
+    protected = {"all_years_data", "all_countries_data", "CRITICAL_FACTS",
+                 "highest_value_year", "highest_count_year", "highest_concentration",
+                 "largest_capacity", "data_summary", "INSTRUCTIONS"}
     trimmed = {k: v for k, v in ctx.items()
                if k in protected or k not in ("top_15_countries", "top_15_by_value",
                                                "cagr_table", "all_countries", "countries_shown")}
@@ -135,15 +136,26 @@ def _enrich_context(ctx: dict, scope: str, filters: dict) -> dict:
             "4. Report numeric values EXACTLY — do not round."
         )
     if scope == "cement_specific":
+        all_countries = ctx.get("all_countries_data", [])
+        if all_countries:
+            ctx["CRITICAL_FACTS"] = (
+                f"TOTAL COUNTRIES SHOWN: {len(all_countries)}. "
+                f"HIGHEST TOP3 SHARE: {ctx.get('highest_concentration', {}).get('country')} at "
+                f"{ctx.get('highest_concentration', {}).get('top3_share_pct')}%. "
+                f"LARGEST CAPACITY: {ctx.get('largest_capacity', {}).get('country')} at "
+                f"{ctx.get('largest_capacity', {}).get('total_capacity_mt')} Mt. "
+                "These are FACTS from the dataset. Do NOT override with training knowledge."
+            )
         ctx["INSTRUCTIONS"] = (
             "This is the GEM Cement & Concrete Tracker. "
-            "Bar width in the chart = total capacity (Mt). Bar height = Top 3 share (%). "
+            "Bar width = total capacity (Mt). Bar height = Top 3 share (%). "
             "Red = Top 3 producers, Grey = Other producers. "
-            "Use run_query to compute capacity shares, top producers, country rankings. "
+            "ALWAYS use 'all_countries_data' from this context for country-level answers — it has ALL countries shown. "
+            "NEVER use training knowledge for specific country values. "
+            "Use run_query only for detailed plant-level queries or owners not in context. "
             "Always filter by Operating status == 'operating' unless user specifies otherwise. "
-            "CHART GENERATION: When the user asks for a chart, bar chart, pie chart, or any visualization, "
-            "you MUST include a ```json __chart__ block using data from the dataset or chart context. "
-            "Use the data_summary from context for quick charts without querying."
+            "CHART GENERATION: When asked for a chart, include a ```json __chart__ block "
+            "using all_countries_data from context."
         )
     if scope == "ma_deals":
         # Pre-compute highest year directly from context data
