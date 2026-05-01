@@ -369,6 +369,11 @@ WEB / CITATION RULES (only relevant in web-enabled mode):
 - Do NOT mix dataset numbers with web-derived claims in the same sentence.
 - If both dataset + web are used, keep two sections: "From your dataset" and "From web sources".
 
+DATASET MODE RULES (when web is OFF):
+- Answer STRICTLY from the dataset and chart context only.
+- Never supplement with training knowledge or general facts.
+- If data is not in the dataset, say so clearly.
+
 SIC RULE:
 - If SIC/SIC code(s) appear, show them EXACTLY; never round or alter them.
 

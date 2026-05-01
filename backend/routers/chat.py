@@ -102,12 +102,16 @@ def _build_minimal_profile(df_full, scope: str) -> dict:
 
 # ── Context helpers ───────────────────────────────────────────────────────────
 
-def _trim_context(ctx: dict, max_chars: int = 1800) -> dict:
+def _trim_context(ctx: dict, max_chars: int = 3000) -> dict:
     ctx_str = json.dumps(ctx, default=str)
     if len(ctx_str) <= max_chars:
         return ctx
+    # Never trim these critical fields
+    protected = {"all_years_data", "CRITICAL_FACTS", "highest_value_year",
+                 "highest_count_year", "data_summary", "INSTRUCTIONS"}
     trimmed = {k: v for k, v in ctx.items()
-               if k not in ("top_15_countries", "top_15_by_value", "cagr_table", "all_countries")}
+               if k in protected or k not in ("top_15_countries", "top_15_by_value",
+                                               "cagr_table", "all_countries", "countries_shown")}
     for key in ("top_15_countries", "top_15_by_value"):
         if key in ctx:
             trimmed[key] = ctx[key][:8]
@@ -117,6 +121,8 @@ def _trim_context(ctx: dict, max_chars: int = 1800) -> dict:
     if "all_countries" in ctx:
         entries = str(ctx["all_countries"]).split(", ")
         trimmed["all_countries"] = ", ".join(entries[:25])
+    if "countries_shown" in ctx:
+        trimmed["countries_shown"] = ctx["countries_shown"][:25]
     return trimmed
 
 
@@ -140,17 +146,27 @@ def _enrich_context(ctx: dict, scope: str, filters: dict) -> dict:
             "Use the data_summary from context for quick charts without querying."
         )
     if scope == "ma_deals":
+        # Pre-compute highest year directly from context data
+        all_years = ctx.get("all_years_data", [])
+        if all_years:
+            highest_val = max(all_years, key=lambda x: x.get("deal_value_b") or 0)
+            highest_cnt = max(all_years, key=lambda x: x.get("deal_count") or 0)
+            ctx["highest_value_year"] = highest_val
+            ctx["highest_count_year"] = highest_cnt
+            ctx["CRITICAL_FACTS"] = (
+                f"HIGHEST DEAL VALUE YEAR: {highest_val.get('year')} with ${highest_val.get('deal_value_b')}B. "
+                f"HIGHEST DEAL COUNT YEAR: {highest_cnt.get('year')} with {highest_cnt.get('deal_count')} deals. "
+                f"These are FACTS from the actual dataset. Do NOT override with training knowledge."
+            )
         ctx["INSTRUCTIONS"] = (
             "This is a Dealogic M&A dataset for the cement industry. "
-            "The bar chart shows total deal value ($B) per year. The red line shows deal count. "
-            "IMPORTANT: Always read year-level data from 'all_years_data' in this context first — "
-            "do NOT query the database for questions about which year is highest/lowest or what a specific year's value is. "
-            "The 'highest_value_year' and 'highest_count_year' fields give you the direct answers. "
+            "ALWAYS use 'CRITICAL_FACTS' and 'all_years_data' from this context for year-level answers. "
+            "NEVER use your training knowledge to answer questions about specific years, values or counts — "
+            "the dataset may differ from what you know. "
             "Only use run_query for deal-level details (specific companies, acquirors, targets, etc.). "
             "Deal Value USD (m) / 1000 = $B. Count unique deals using nunique on GIB Deal #. "
-            "CHART GENERATION: When the user asks for a chart, bar chart, line chart, or any visualization, "
-            "you MUST include a ```json __chart__ block in your response using the all_years_data from context. "
-            "Use type='bar_line' for deal value + count, type='bar' for value only, type='line' for count only."
+            "CHART GENERATION: When the user asks for a chart, you MUST include a ```json __chart__ block "
+            "using all_years_data from context. Use type='bar_line' for value+count, 'bar' for value only."
         )
     return ctx
 
@@ -350,18 +366,31 @@ def chat(req: ChatRequest):
                                         "cagr_weights")}
 
         system_prompt = make_system_prompt(profile, ctx, filters_trimmed)
-        system_prompt += (
-            "\n\nTONE & STYLE: Be conversational and insightful like a knowledgeable analyst. "
-            "Don't just list numbers — add brief observations, context, or comparisons. "
-            "Use natural language. Keep responses concise but warm."
-        )
+
+        if req.mode == "dataset":
+            system_prompt += (
+                "\n\n⚠ STRICT DATASET MODE (Web is OFF):\n"
+                "- Answer ONLY from the provided dataset and chart context.\n"
+                "- Do NOT use any training knowledge, general knowledge, or external information.\n"
+                "- Do NOT mention industry trends, historical events, or facts not present in the data.\n"
+                "- If the answer cannot be found in the dataset or chart context, say: "
+                "'I can only answer from the current dataset. This information is not available in the data.'\n"
+                "- Never guess, estimate, or supplement with knowledge from outside the dataset."
+            )
+        else:
+            system_prompt += (
+                "\n\nTONE & STYLE: Be conversational and insightful like a knowledgeable analyst. "
+                "Don't just list numbers — add brief observations, context, or comparisons. "
+                "Use natural language. Keep responses concise but warm."
+            )
         system_prompt += "\n\n" + _STRUCTURED_OUTPUT_INSTRUCTIONS
 
         messages = [{"role": "system", "content": system_prompt}]
         messages += [{"role": m.role, "content": m.content} for m in req.messages]
         messages = _inject_exact_instruction(messages, scope)
 
-        logger.info(f"Chat: scope={scope} msgs={len(req.messages)} prompt_len={len(system_prompt)}")
+        logger.info(f"Chat: scope={scope} msgs={len(req.messages)} prompt_len={len(system_prompt)} "
+                    f"all_years_data_count={len(ctx.get('all_years_data', []))}")
 
         # If user is asking for a chart, inject a reminder to generate the block
         last_user = next((m.content for m in reversed(req.messages) if m.role == "user"), "")

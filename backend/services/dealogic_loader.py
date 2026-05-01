@@ -28,9 +28,9 @@ def get_dealogic_df() -> pd.DataFrame:
     df = pd.read_excel(path, sheet_name=0, engine="openpyxl")
     df.columns = df.columns.str.strip()
 
-    # Parse date column — extract year
-    df[_DATE_COL] = pd.to_datetime(df[_DATE_COL], errors="coerce", dayfirst=True)
-    df["_year"] = df[_DATE_COL].dt.year
+    # Parse date column robustly — handle mixed formats
+    df[_DATE_COL] = pd.to_datetime(df[_DATE_COL], errors="coerce", dayfirst=True, format="mixed")
+    df["_year"] = df[_DATE_COL].dt.year.astype("Int64")
 
     # Clean value column
     df[_VALUE_COL] = pd.to_numeric(df[_VALUE_COL], errors="coerce")
