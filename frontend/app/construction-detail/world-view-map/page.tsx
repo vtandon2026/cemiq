@@ -1,6 +1,7 @@
 // PATH: frontend/app/construction-detail/world-view-map/page.tsx
 "use client";
 import { useEffect, useState } from "react";
+import React from "react";
 import dynamic from "next/dynamic";
 import PageHeader from "@/components/layout/PageHeader";
 import Sidebar, { FilterLabel, FilterSelect, FilterDivider } from "@/components/layout/Sidebar";
@@ -43,31 +44,31 @@ function MapLoader() {
 }
 
 type ChoroplethRow = { country: string; region: string; value: number; yoy_growth: number | null };
-type BubbleRow     = { country: string; region: string; value: number; yoy_growth: number | null; rank: number };
+type BubbleRow = { country: string; region: string; value: number; yoy_growth: number | null; rank: number };
 
 export default function WorldViewMapPage() {
   // ── Meta ──────────────────────────────────────────────────────────────────
-  const [years,     setYears]     = useState<number[]>([]);
-  const [segments,  setSegments]  = useState<string[]>([]);
-  const [newRenOpts,setNewRenOpts]= useState<string[]>([]);
-  const [sources,   setSources]   = useState<string[]>([]);
+  const [years, setYears] = useState<number[]>([]);
+  const [segments, setSegments] = useState<string[]>([]);
+  const [newRenOpts, setNewRenOpts] = useState<string[]>([]);
+  const [sources, setSources] = useState<string[]>([]);
 
   // ── Filters ────────────────────────────────────────────────────────────────
-  const [year,     setYear]    = useState(2024);
-  const [segment,  setSegment] = useState("All");
-  const [newRen,   setNewRen]  = useState("All");
-  const [source,   setSource]  = useState("All");
-  const [metric,   setMetric]  = useState("total_value");
-  const [topN,     setTopN]    = useState(100);
-  const [viewMode, setViewMode]= useState("Choropleth View");
+  const [year, setYear] = useState(2024);
+  const [segment, setSegment] = useState("All");
+  const [newRen, setNewRen] = useState("All");
+  const [source, setSource] = useState("All");
+  const [metric, setMetric] = useState("total_value");
+  const [topN, setTopN] = useState(100);
+  const [viewMode, setViewMode] = useState("Choropleth View");
 
   // ── Data ───────────────────────────────────────────────────────────────────
   const [choroplethData, setChoroplethData] = useState<ChoroplethRow[]>([]);
-  const [bubbleData,     setBubbleData]     = useState<BubbleRow[]>([]);
-  const [loading,        setLoading]        = useState(false);
-  const [exporting,      setExporting]      = useState(false);
-  const [error,          setError]          = useState<string | null>(null);
-  const [chartCtx,       setChartCtx]       = useState<Record<string, unknown>>({});
+  const [bubbleData, setBubbleData] = useState<BubbleRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [chartCtx, setChartCtx] = useState<Record<string, unknown>>({});
 
   // ── Load meta ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -90,8 +91,8 @@ export default function WorldViewMapPage() {
     setError(null);
 
     const seg = segment !== "All" ? segment : undefined;
-    const nr  = newRen  !== "All" ? newRen  : undefined;
-    const src = source  !== "All" ? source  : undefined;
+    const nr = newRen !== "All" ? newRen : undefined;
+    const src = source !== "All" ? source : undefined;
 
     if (viewMode === "Choropleth View") {
       getWorldViewChoropleth({ year, segment: seg, new_ren: nr, source: src, metric })
@@ -156,8 +157,8 @@ export default function WorldViewMapPage() {
   return (
     <div style={{ fontFamily: F }}>
       <PageHeader
-        title="World View Map"
-        subtitle="Construction Detail · Global construction activity by country"
+        title="Global Construction Map"
+        subtitle="Construction Markets · Global construction activity by country"
       />
       {error && (
         <div style={{
@@ -264,9 +265,9 @@ export default function WorldViewMapPage() {
                 }}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                  <polyline points="15 3 21 3 21 9"/>
-                  <line x1="10" y1="14" x2="21" y2="3"/>
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
                 </svg>
                 View in Tableau
               </a>
@@ -331,28 +332,40 @@ export default function WorldViewMapPage() {
               )}
 
               <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 8 }}>
-                Source: {source !== "All" ? source : "GlobalData / Multiple"}
+                Source: {source !== "All" ? source : "GlobalData, IHS, Euroconstruct, Bain Building Blocks 2026"}
               </p>
-            </div>
-          </div>
+              <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
+                {"For a deeper analysis, explore the full Tableau dashboard: "}
 
-          {/* ── Chat ──────────────────────────────────────────────────── */}
-          <div style={{ width: 288, flexShrink: 0 }}>
-            <ChatPanel
-              currentFilters={{
-                year, segment, new_ren: newRen, source, viewMode, metric,
-                top_n: topN,
-                data_description: "Pre-aggregated construction market data by country. Values below are the EXACT aggregated market values — use these directly, do NOT query the raw Excel.",
-                available_metrics: "total_value (sum of activity in $B), yoy_growth (weighted avg CAGR %)",
-                important_note: "The values in chart_context.all_countries are the correct aggregated values shown on the map. Always use these values when answering questions about specific countries.",
-              }}
-              chartContext={chartCtx}
-              dataScope="construction_detail"
-              title="Construct Lens"
-            />
+                <a
+                  href="https://us-east-1.online.tableau.com/#/site/casepracticeproduct/views/Constructionoutlook2025-29F/TitlePage?:iid=1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#E60000", textDecoration: "underline", fontWeight: 600 } as React.CSSProperties}
+                >
+                  Construction Outlook 2025–29 ↗
+                </a>
+              </p>
           </div>
+        </div>
+
+        {/* ── Chat ──────────────────────────────────────────────────── */}
+        <div style={{ width: 288, flexShrink: 0 }}>
+          <ChatPanel
+            currentFilters={{
+              year, segment, new_ren: newRen, source, viewMode, metric,
+              top_n: topN,
+              data_description: "Pre-aggregated construction market data by country. Values below are the EXACT aggregated market values — use these directly, do NOT query the raw Excel.",
+              available_metrics: "total_value (sum of activity in $B), yoy_growth (weighted avg CAGR %)",
+              important_note: "The values in chart_context.all_countries are the correct aggregated values shown on the map. Always use these values when answering questions about specific countries.",
+            }}
+            chartContext={chartCtx}
+            dataScope="construction_detail"
+            title="Construct Lens"
+          />
         </div>
       </div>
     </div>
+    </div >
   );
 }

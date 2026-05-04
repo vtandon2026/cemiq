@@ -179,7 +179,7 @@ export default function CapacityConcentrationPage() {
     <div style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
       <PageHeader
         title="Top 3 Share of Local Production Capacity"
-        subtitle="Cement Specific · GEM Tracker · Capacity Concentration by Country"
+        subtitle="Cement Analytics · GEM Tracker · Capacity Concentration by Country"
       />
 
       <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>

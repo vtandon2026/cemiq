@@ -107,3 +107,16 @@ def construction_detail_growth(req: GrowthRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# ── Bain POV ──────────────────────────────────────────────────────────────────
+class BainPovRequest(BaseModel):
+    country:  str
+    segment:  str = "All"
+    new_ren:  str = "All"
+
+
+@router.post("/bain-pov")
+def bain_pov(req: BainPovRequest):
+    from services.bain_pov_loader import lookup_bain_pov
+    result = lookup_bain_pov(req.country, req.segment, req.new_ren)
+    return result

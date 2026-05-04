@@ -39,6 +39,7 @@ async def _preload_all():
     from services.ciq_loader           import get_ciq_long_df
     from services.cement_capacity_loader import get_gem_df
     from services.dealogic_loader import get_dealogic_df
+    from services.bain_pov_loader           import get_bain_pov_df
 
     loaders = [
         ("CIQ Financials",  get_ciq_long_df),
@@ -49,6 +50,7 @@ async def _preload_all():
         ("Stock Prices",    get_stock_prices_df),
         ("GEM Tracker", get_gem_df),
         ("M&A Deals", get_dealogic_df),
+        ("Bain POV",        get_bain_pov_df),
     ]
 
     async def _warm(name: str, fn):

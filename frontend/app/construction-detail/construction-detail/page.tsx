@@ -214,8 +214,8 @@ export default function ConstructionDetailPage() {
   return (
     <div style={{ fontFamily: F }}>
       <PageHeader
-        title="Construction Detail"
-        subtitle="Market Intelligence · Segment-level construction activity by region &amp; country"
+        title="Construction Market Overview"
+        subtitle="Construction Markets · Segment-level construction activity by region &amp; country"
       />
       {error && (
         <div style={{
@@ -401,7 +401,7 @@ export default function ConstructionDetailPage() {
               )}
 
               <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 8 }}>
-                Source: {source !== "All" ? source : "GlobalData / Multiple"}
+                Source: {source !== "All" ? source : "GlobalData, IHS, Euroconstruct, Bain Building Blocks 2026"}
               </p>
             </div>
 
@@ -425,7 +425,7 @@ export default function ConstructionDetailPage() {
                 country,
                 segment: segment !== "All" ? segment : "All segments",
                 new_ren: newRen !== "All" ? newRen : "All (New + Renovation)",
-                source: source !== "All" ? source : "All sources (GlobalData, IHS, Euroconstruct)",
+                source: source !== "All" ? source : "All sources (GlobalData, IHS, Euroconstruct, Bain Building Blocks 2026)",
                 viewMode,
                 top_n: topN,
                 available_regions: regions.join(", "),

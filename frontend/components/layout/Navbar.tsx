@@ -6,22 +6,26 @@ import { useState, useEffect, useRef } from "react";
 
 const NAV_ITEMS = [
   {
-    label: "Market Intelligence",
+    label: "Construction Markets",
     children: [
-      { label: "Construction Overall", href: "/market-intelligence/construction-overall", desc: "Global construction revenue by region" },
-      { label: "Building Materials Sales", href: "/market-intelligence/building-materials", desc: "Building products market breakdown" },
-      { label: "Cement Sales", href: "/market-intelligence/cement-sales", desc: "Cement & concrete demand trends" },
-      { label: "Cement Demand", href: "/market-intelligence/cement-demand", desc: "Demand & consumption growth by country" },
-      { label: "Executive Summary", href: "/market-intelligence/executive-summary", desc: "AI-generated country outlooks" },
+      { label: "Construction Market Overview", href: "/construction-detail/construction-detail", desc: "Segment-level construction activity · Mekko & Growth view" },
+      { label: "Global Construction Map", href: "/construction-detail/world-view-map", desc: "Global construction activity · Choropleth & Bubble map" },
     ],
   },
   {
-    label: "Construction Detail",
+    label: "Cement Analytics",
     children: [
-      { label: "Construction Detail", href: "/construction-detail/construction-detail", desc: "Segment-level construction activity · Mekko & Growth view" },
-      { label: "World View Map", href: "/construction-detail/world-view-map", desc: "Global construction activity · Choropleth & Bubble map" },
+      {
+        label: "Capacity Concentration",
+        href: "/cement-specific/capacity-concentration",
+        desc: "Top 3 share of local production capacity by country",
+      },
+      {
+        label: "M&A Activity",
+        href: "/cement-specific/ma-deals",
+        desc: "Cement industry deal value & count by year",
+      },
     ],
-
   },
   {
     label: "Supply & Production",
@@ -29,6 +33,16 @@ const NAV_ITEMS = [
       { label: "US Production Overview", href: "/supply-production/us-production-overview", desc: "Capacity by producer & state" },
       { label: "US Plant Level Insights", href: "/supply-production/us-plant-insights", desc: "Interactive plant location map" },
       { label: "Global Cement Volumes", href: "/supply-production/global-cement-volumes", desc: "Country-level production data" },
+    ],
+  },
+  {
+    label: "Market Intelligence",
+    children: [
+      { label: "Construction Overall", href: "/market-intelligence/construction-overall", desc: "Global construction revenue by region" },
+      { label: "Building Materials Sales", href: "/market-intelligence/building-materials", desc: "Building products market breakdown" },
+      { label: "Cement Sales", href: "/market-intelligence/cement-sales", desc: "Cement & concrete demand trends" },
+      { label: "Cement Demand", href: "/market-intelligence/cement-demand", desc: "Demand & consumption growth by country" },
+      { label: "Executive Summary", href: "/market-intelligence/executive-summary", desc: "AI-generated country outlooks" },
     ],
   },
   {
@@ -45,21 +59,7 @@ const NAV_ITEMS = [
       { label: "Analyst Section", href: "/stock-valuation/analyst-section", desc: "Analyst benchmarking" },
     ],
   },
-  {
-  label: "Cement Specific",
-   children: [
-      {
-        label: "Capacity Concentration",
-        href:  "/cement-specific/capacity-concentration",
-        desc:  "Top 3 share of local production capacity by country",
-      },
-      {
-        label: "M&A Activity",
-        href:  "/cement-specific/ma-deals",
-        desc:  "Cement industry deal value & count by year",
-      },
-    ],
-  },
+
 ];
 
 export default function Navbar() {

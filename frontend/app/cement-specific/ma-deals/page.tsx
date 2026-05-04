@@ -45,21 +45,21 @@ export default function MaDealsPage() {
   const [meta, setMeta] = useState<Meta | null>(null);
 
   // Filters
-  const [yearMin, setYearMin]               = useState(1997);
-  const [yearMax, setYearMax]               = useState(2024);
-  const [selRegions, setSelRegions]         = useState<Set<string>>(new Set());
-  const [selTargetRegs, setSelTargetRegs]   = useState<Set<string>>(new Set());
-  const [selStatuses, setSelStatuses]       = useState<Set<string>>(new Set());
-  const [selTechniques, setSelTechniques]   = useState<Set<string>>(new Set());
-  const [minValue, setMinValue]             = useState(0);
+  const [yearMin, setYearMin] = useState(1997);
+  const [yearMax, setYearMax] = useState(2024);
+  const [selRegions, setSelRegions] = useState<Set<string>>(new Set());
+  const [selTargetRegs, setSelTargetRegs] = useState<Set<string>>(new Set());
+  const [selStatuses, setSelStatuses] = useState<Set<string>>(new Set());
+  const [selTechniques, setSelTechniques] = useState<Set<string>>(new Set());
+  const [minValue, setMinValue] = useState(0);
 
   // Data
-  const [chartData, setChartData]   = useState<MaDealRow[]>([]);
-  const [tableData, setTableData]   = useState<TableRow[]>([]);
-  const [loading, setLoading]       = useState(false);
-  const [exporting, setExporting]   = useState(false);
-  const [showTable, setShowTable]   = useState(false);
-  const [chartCtx, setChartCtx]     = useState<Record<string, unknown>>({});
+  const [chartData, setChartData] = useState<MaDealRow[]>([]);
+  const [tableData, setTableData] = useState<TableRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [showTable, setShowTable] = useState(false);
+  const [chartCtx, setChartCtx] = useState<Record<string, unknown>>({});
 
   // ── Load meta ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -79,13 +79,13 @@ export default function MaDealsPage() {
   const buildBody = useCallback(() => {
     if (!meta) return null;
     return {
-      year_min:        yearMin,
-      year_max:        yearMax,
-      deal_regions:    selRegions.size === meta.deal_regions.length ? null : [...selRegions],
-      target_regions:  selTargetRegs.size === meta.target_regions.length ? null : [...selTargetRegs],
-      deal_statuses:   selStatuses.size === meta.deal_statuses.length ? null : [...selStatuses],
+      year_min: yearMin,
+      year_max: yearMax,
+      deal_regions: selRegions.size === meta.deal_regions.length ? null : [...selRegions],
+      target_regions: selTargetRegs.size === meta.target_regions.length ? null : [...selTargetRegs],
+      deal_statuses: selStatuses.size === meta.deal_statuses.length ? null : [...selStatuses],
       deal_techniques: selTechniques.size === meta.deal_techniques.length ? null : [...selTechniques],
-      min_deal_value:  minValue > 0 ? minValue : null,
+      min_deal_value: minValue > 0 ? minValue : null,
     };
   }, [meta, yearMin, yearMax, selRegions, selTargetRegs, selStatuses, selTechniques, minValue]);
 
@@ -159,10 +159,10 @@ export default function MaDealsPage() {
       // Row 0 (header)       : null | year1 | year2 | ...
       // Row 1 (Deal Value)   : {string: "Deal value"} | {number: val_b} | ...
       // Row 2 (Deal Count)   : {string: "Deal count"} | {number: count} | ...
-      const sorted  = [...chartData].sort((a, b) => a.year - b.year);
-      const header  = [null, ...sorted.map(d => ({ string: String(d.year) }))];
-      const valRow  = [{ string: "Deal value" },  ...sorted.map(d => ({ number: d.deal_value_b ?? 0 }))];
-      const cntRow  = [{ string: "Deal count" },  ...sorted.map(d => ({ number: d.deal_count }))];
+      const sorted = [...chartData].sort((a, b) => a.year - b.year);
+      const header = [null, ...sorted.map(d => ({ string: String(d.year) }))];
+      const valRow = [{ string: "Deal value" }, ...sorted.map(d => ({ number: d.deal_value_b ?? 0 }))];
+      const cntRow = [{ string: "Deal count" }, ...sorted.map(d => ({ number: d.deal_count }))];
 
       const res = await exportPptx({
         template: "ma",
@@ -180,14 +180,14 @@ export default function MaDealsPage() {
     }
   };
 
-  const totalDeals  = chartData.reduce((s, d) => s + d.deal_count, 0);
-  const totalValue  = chartData.reduce((s, d) => s + (d.deal_value_b ?? 0), 0);
+  const totalDeals = chartData.reduce((s, d) => s + d.deal_count, 0);
+  const totalValue = chartData.reduce((s, d) => s + (d.deal_value_b ?? 0), 0);
 
   return (
     <div style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
       <PageHeader
         title="Cement Industry M&A Activity"
-        subtitle="Cement Specific · Dealogic · Deal Value & Count by Year"
+        subtitle="Cement Analytics · Dealogic · Deal Value & Count by Year"
       />
 
       <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
@@ -333,7 +333,7 @@ export default function MaDealsPage() {
               )}
 
               <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 8 }}>
-                Source: Dealogic
+                Source: Dealogic · Data as of {yearMax}
               </p>
             </div>
 
@@ -386,7 +386,7 @@ export default function MaDealsPage() {
                       onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#475569"; }}
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                       </svg>
                       Download CSV
                     </button>

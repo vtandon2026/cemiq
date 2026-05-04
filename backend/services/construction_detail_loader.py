@@ -296,15 +296,34 @@ def get_growth_data(
                 total_w += w
         weighted_avg = (weighted_sum / total_w) if total_w > 0 else None
 
+        # Bain POV — only for 2024–2029 (forecast) period
+        bain_cagr, bain_range = None, None
+        if start == 2024 and end == 2029:
+            try:
+                from services.bain_pov_loader import lookup_bain_pov
+                seg_key = segment if segment else "All"
+                nr_key  = new_ren  if new_ren  else "All"
+                import logging as _log
+                _log.getLogger("cemiq").info(f"Bain POV lookup: country={country!r} seg={seg_key!r} nr={nr_key!r}")
+                pov = lookup_bain_pov(country, seg_key, nr_key)
+                _log.getLogger("cemiq").info(f"Bain POV result: {pov}")
+                bain_cagr  = pov.get("cagr")
+                bain_range = pov.get("range")
+            except Exception as _e:
+                import logging as _log
+                _log.getLogger("cemiq").warning(f"Bain POV lookup failed: {_e}")
+
         cagr_rows.append({
             "period":            f"{start}–{end}",
             "start":             sv,
             "end":               ev,
-            "cagr":              _cagr_rate(sv, ev, n),          # overall
+            "cagr":              _cagr_rate(sv, ev, n),
             "globaldata_cagr":   source_cagrs.get("GlobalData"),
             "ihs_cagr":          source_cagrs.get("IHS"),
             "euroconstruct_cagr":source_cagrs.get("Euroconstruct"),
             "weighted_avg_cagr": weighted_avg,
+            "bain_pov_cagr":     bain_cagr,
+            "bain_pov_range":    bain_range,
         })
 
     return {
