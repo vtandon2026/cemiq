@@ -341,31 +341,36 @@ export default function WorldViewMapPage() {
                   href="https://us-east-1.online.tableau.com/#/site/casepracticeproduct/views/Constructionoutlook2025-29F/TitlePage?:iid=1"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: "#E60000", textDecoration: "underline", fontWeight: 600 } as React.CSSProperties}
+                  style={{ color: "#E60000", textDecoration: "underline", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 } as React.CSSProperties}
                 >
-                  Construction Outlook 2025–29 ↗
+                  Construction Outlook 2025–29
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
                 </a>
               </p>
+            </div>
+          </div>
+
+          {/* ── Chat ──────────────────────────────────────────────────── */}
+          <div style={{ width: 288, flexShrink: 0 }}>
+            <ChatPanel
+              currentFilters={{
+                year, segment, new_ren: newRen, source, viewMode, metric,
+                top_n: topN,
+                data_description: "Pre-aggregated construction market data by country. Values below are the EXACT aggregated market values — use these directly, do NOT query the raw Excel.",
+                available_metrics: "total_value (sum of activity in $B), yoy_growth (weighted avg CAGR %)",
+                important_note: "The values in chart_context.all_countries are the correct aggregated values shown on the map. Always use these values when answering questions about specific countries.",
+              }}
+              chartContext={chartCtx}
+              dataScope="construction_detail"
+              title="Construct Lens"
+            />
           </div>
         </div>
-
-        {/* ── Chat ──────────────────────────────────────────────────── */}
-        <div style={{ width: 288, flexShrink: 0 }}>
-          <ChatPanel
-            currentFilters={{
-              year, segment, new_ren: newRen, source, viewMode, metric,
-              top_n: topN,
-              data_description: "Pre-aggregated construction market data by country. Values below are the EXACT aggregated market values — use these directly, do NOT query the raw Excel.",
-              available_metrics: "total_value (sum of activity in $B), yoy_growth (weighted avg CAGR %)",
-              important_note: "The values in chart_context.all_countries are the correct aggregated values shown on the map. Always use these values when answering questions about specific countries.",
-            }}
-            chartContext={chartCtx}
-            dataScope="construction_detail"
-            title="Construct Lens"
-          />
-        </div>
       </div>
-    </div>
     </div >
   );
 }
