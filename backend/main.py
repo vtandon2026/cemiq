@@ -101,7 +101,7 @@ app.add_middleware(
 
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-from routers import data, export, chat, deck, exec_summary, construction_detail, cement_specific, ma_deals, world_view
+from routers import data, export, chat, deck, exec_summary, construction_detail, cement_specific, ma_deals, world_view, company_capacity
 
 app.include_router(data.router,                prefix="/data")
 app.include_router(export.router,              prefix="/export")
@@ -112,6 +112,7 @@ app.include_router(construction_detail.router, prefix="/construction-detail")
 app.include_router(cement_specific.router,     prefix="/cement-specific")
 app.include_router(ma_deals.router,            prefix="/cement-specific")
 app.include_router(world_view.router,          prefix="/world-view")
+app.include_router(company_capacity.router, prefix="/cement-specific/company-capacity", tags=["company-capacity"])
 
 
 

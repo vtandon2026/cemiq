@@ -21,6 +21,11 @@ const NAV_ITEMS = [
         desc: "Top 3 share of local production capacity by country",
       },
       {
+        label: "Capacity by Company",
+        href: "/cement-specific/company-capacity",
+        desc: "Production capacity ranked by producer"
+      },
+      {
         label: "M&A Activity",
         href: "/cement-specific/ma-deals",
         desc: "Cement industry deal value & count by year",
