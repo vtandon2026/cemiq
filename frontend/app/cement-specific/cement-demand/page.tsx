@@ -248,17 +248,17 @@ export default function CementDemandPage() {
               <div>
                 <FilterLabel>Data Type</FilterLabel>
                 <div style={{ marginTop: 6, display: "flex", gap: 4 }}>
-                  {(["Volume (Tons)", "Value (USD)"] as const).map(opt => (
+                  {(["Volume (Tons)", "Value (USD thousand)"] as const).map(opt => (
                     <button
                       key={opt}
                       onClick={() => setTradeMeasure(opt === "Volume (Tons)" ? "volume" : "value")}
                       style={{
                         flex: 1, padding: "5px 4px", fontSize: 10, fontWeight: 600,
                         border: "1px solid",
-                        borderColor: (tradeMeasure === "volume" ? opt === "Volume (Tons)" : opt === "Value (USD)") ? "var(--bain-red)" : "#e2e8f0",
+                        borderColor: (tradeMeasure === "volume" ? opt === "Volume (Tons)" : opt === "Value (USD thousand)") ? "var(--bain-red)" : "#e2e8f0",
                         borderRadius: 6, cursor: "pointer", fontFamily: F,
-                        background: (tradeMeasure === "volume" ? opt === "Volume (Tons)" : opt === "Value (USD)") ? "#fff1f1" : "#fff",
-                        color: (tradeMeasure === "volume" ? opt === "Volume (Tons)" : opt === "Value (USD)") ? "var(--bain-red)" : "#475569",
+                        background: (tradeMeasure === "volume" ? opt === "Volume (Tons)" : opt === "Value (USD thousand)") ? "#fff1f1" : "#fff",
+                        color: (tradeMeasure === "volume" ? opt === "Volume (Tons)" : opt === "Value (USD thousand)") ? "var(--bain-red)" : "#475569",
                         transition: "all 0.15s",
                       }}
                     >
@@ -301,7 +301,7 @@ export default function CementDemandPage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 16 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", fontFamily: F }}>
-                    {kpi}{isTradeKpi ? ` · ${tradeMeasure === "volume" ? "Volume (Tons)" : "Value (USD)"}` : ""} — {country}
+                    {kpi}{isTradeKpi ? ` · ${tradeMeasure === "volume" ? "Volume (Tons)" : "Value (USD thousand)"}` : ""} — {country}
                   </div>
                   <div style={{ fontSize: 11, color: "#94a3b8", fontFamily: F, marginTop: 2 }}>
                     {isTradeKpi ? "Source: Trademad" : `Forecast to ${cutoffYear} · Source: CemNet`}
