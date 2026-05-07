@@ -307,7 +307,7 @@ export default function ConstructionDetailPage() {
                 value={viewMode}
                 onChange={setViewMode}
               />
-              <a
+              {/* <a
                 href="https://us-east-1.online.tableau.com/#/site/casepracticeproduct/views/Constructionoutlook2025-29F/TitlePage?:iid=1"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -335,7 +335,7 @@ export default function ConstructionDetailPage() {
                   <line x1="10" y1="14" x2="21" y2="3"/>
                 </svg>
                 View in Tableau
-              </a>
+              </a> */}
             </div>
 
             {/* Chart card */}
