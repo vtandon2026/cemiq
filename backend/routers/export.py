@@ -55,6 +55,7 @@ TEMPLATE_MAP: Dict[str, Path] = {
     # "mekko_rms":    settings.THINKCELL_TEMPLATE_MEKKO,  # capacity concentration
     "mekko_rms": settings.THINKCELL_TEMPLATE_MEKKO_RMS,
     "ma":        settings.THINKCELL_TEMPLATE_MA,
+    "trade":       settings.THINKCELL_TEMPLATE_TRADE,
 }
 
 

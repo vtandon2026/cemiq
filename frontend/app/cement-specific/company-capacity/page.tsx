@@ -74,7 +74,7 @@ export default function CompanyCapacityPage() {
                 const top = res.data?.[0];
                 setChartCtx({
                     chart_type: "bar",
-                    chart_title: "Cement Capacity by Company",
+                    chart_title: "Company Capacity Overview",
                     data_scope: "cement_specific",
                     filters: { statuses, countries, topN, minCapacity },
                     top_company: top ? { company: top.company, capacity: top.total_capacity, share: top.market_share } : null,
@@ -116,7 +116,7 @@ export default function CompanyCapacityPage() {
     return (
         <div style={{ fontFamily: F }}>
             <PageHeader
-                title="Capacity by Company"
+                title="Company Capacity Overview"
                 subtitle="Cement Analytics · GEM Tracker · Production Capacity by Producer"
             />
 

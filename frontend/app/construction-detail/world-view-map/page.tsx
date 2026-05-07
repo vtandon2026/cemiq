@@ -60,7 +60,7 @@ export default function WorldViewMapPage() {
   const [source, setSource] = useState("All");
   const [metric, setMetric] = useState("total_value");
   const [topN, setTopN] = useState(100);
-  const [viewMode, setViewMode] = useState("Choropleth View");
+  const [viewMode, setViewMode] = useState("Region Level View");
 
   // ── Data ───────────────────────────────────────────────────────────────────
   const [choroplethData, setChoroplethData] = useState<ChoroplethRow[]>([]);
@@ -94,7 +94,7 @@ export default function WorldViewMapPage() {
     const nr = newRen !== "All" ? newRen : undefined;
     const src = source !== "All" ? source : undefined;
 
-    if (viewMode === "Choropleth View") {
+    if (viewMode === "Region Level View") {
       getWorldViewChoropleth({ year, segment: seg, new_ren: nr, source: src, metric })
         .then((r) => {
           setChoroplethData(r.data.data);
@@ -135,13 +135,13 @@ export default function WorldViewMapPage() {
 
   // ── CSV export ─────────────────────────────────────────────────────────────
   const downloadCsv = () => {
-    if (viewMode === "Choropleth View" && choroplethData.length > 0) {
+    if (viewMode === "Region Level View" && choroplethData.length > 0) {
       const rows = ["Country,Region,Value,YoY Growth",
         ...choroplethData.map((r) =>
           `${r.country},${r.region},${r.value},${r.yoy_growth ?? ""}`)];
       downloadBlob(new Blob([rows.join("\n")], { type: "text/csv" }),
         `world_view_choropleth_${year}.csv`);
-    } else if (viewMode === "Bubble View" && bubbleData.length > 0) {
+    } else if (viewMode === "Country Level View" && bubbleData.length > 0) {
       const rows = ["Rank,Country,Region,Value,YoY Growth",
         ...bubbleData.map((r) =>
           `${r.rank},${r.country},${r.region},${r.value},${r.yoy_growth ?? ""}`)];
@@ -150,7 +150,7 @@ export default function WorldViewMapPage() {
     }
   };
 
-  const csvDisabled = viewMode === "Choropleth View"
+  const csvDisabled = viewMode === "Region Level View"
     ? choroplethData.length === 0
     : bubbleData.length === 0;
 
@@ -205,7 +205,7 @@ export default function WorldViewMapPage() {
           <FilterDivider />
 
           {/* Choropleth-only filters */}
-          {viewMode === "Choropleth View" && (
+          {viewMode === "Region Level View" && (
             <div>
               <FilterLabel>Metric</FilterLabel>
               <FilterSelect value={metric} onChange={(e) => setMetric(e.target.value)}>
@@ -216,7 +216,7 @@ export default function WorldViewMapPage() {
           )}
 
           {/* Bubble-only filters */}
-          {viewMode === "Bubble View" && (
+          {viewMode === "Country Level View" && (
             <div>
               <FilterLabel>Top N countries: <strong>{topN}</strong></FilterLabel>
               <input
@@ -238,7 +238,7 @@ export default function WorldViewMapPage() {
             {/* View toggle + Tableau link */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <SegmentedControl
-                options={["Choropleth View", "Bubble View"]}
+                options={["Region Level View", "Country Level View"]}
                 value={viewMode}
                 onChange={setViewMode}
               />
@@ -283,13 +283,13 @@ export default function WorldViewMapPage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", fontFamily: F }}>
-                    {viewMode === "Choropleth View"
+                    {viewMode === "Region Level View"
                       ? `Global Construction Activity · ${year}${metric === "yoy_growth" ? " · YoY Growth" : ""}`
                       : `Top ${topN} Countries · ${year}`
                     }
                   </div>
                   <div style={{ fontSize: 11, color: "#94a3b8", fontFamily: F, marginTop: 2 }}>
-                    {viewMode === "Choropleth View"
+                    {viewMode === "Region Level View"
                       ? "Countries shaded by construction activity value"
                       : "Bubble size proportional to construction activity value"
                     }
@@ -304,7 +304,7 @@ export default function WorldViewMapPage() {
               {/* Map */}
               {loading ? (
                 <MapLoader />
-              ) : viewMode === "Choropleth View" ? (
+              ) : viewMode === "Region Level View" ? (
                 choroplethData.length > 0 ? (
                   <WorldChoroplethMap
                     data={choroplethData}

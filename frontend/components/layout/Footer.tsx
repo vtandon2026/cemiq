@@ -253,53 +253,44 @@
 import Link from "next/link";
 
 const NAV_LINKS = [
-    {
-        section: "Market Intelligence",
-        links: [
-            { label: "Construction Overall", href: "/market-intelligence/construction-overall" },
-            { label: "Building Materials Sales", href: "/market-intelligence/building-materials" },
-            { label: "Cement Sales", href: "/market-intelligence/cement-sales" },
-            { label: "Cement Demand", href: "/market-intelligence/cement-demand" },
-            { label: "Executive Summary", href: "/market-intelligence/executive-summary" },
-        ],
-    },
-    {
-        section: "Construction Detail",
-        links: [
-            { label: "Construction Detail", href: "/construction-detail/construction-detail" },
-            { label: "World View Map", href: "construction-detail/world-view-map" },
-        ],
-    },
-    {
-        section: "Supply & Production",
-        links: [
-            { label: "US Production Overview", href: "/supply-production/us-production-overview" },
-            { label: "US Plant Level Insights", href: "/supply-production/us-plant-insights" },
-            { label: "Global Cement Volumes", href: "/supply-production/global-cement-volumes" },
-        ],
-    },
-    {
-        section: "Business Performance",
-        links: [
-            { label: "KPIs", href: "/business-performance/kpis" },
-            { label: "Profit Pools", href: "/business-performance/profit-pools" },
-        ],
-    },
-    {
-        section: "Stock & Valuation",
-        links: [
-            { label: "Stock Price Overview", href: "/stock-valuation/stock-price-overview" },
-            { label: "Analyst Section", href: "/stock-valuation/analyst-section" },
-        ],
-    },
-    {
-        section: "Cement Specific",
-        links: [
-            { label: "Capacity Concentration", href: "/cement-specific/capacity-concentration" },
-            { label: "M&A Activity",           href: "/cement-specific/ma-deals" },
-
-        ],
-    },
+  {
+    section: "Construction Markets",
+    links: [
+      { label: "Construction Market Overview", href: "/construction-detail/construction-detail" },
+      { label: "Global Construction Map",      href: "/construction-detail/world-view-map" },
+    ],
+  },
+  {
+    section: "Cement Analytics",
+    links: [
+      { label: "Capacity Concentration", href: "/cement-specific/capacity-concentration" },
+      { label: "Company Capacity Overview",    href: "/cement-specific/company-capacity" },
+      { label: "M&A Activity",           href: "/cement-specific/ma-deals" },
+      { label: "Cement Sales",           href: "/cement-specific/cement-sales" },
+      { label: "Cement Demand",          href: "/cement-specific/cement-demand" },
+    ],
+  },
+  {
+    section: "Supply & Production",
+    links: [
+      { label: "US Production Overview",  href: "/supply-production/us-production-overview" },
+      { label: "US Plant Level Insights", href: "/supply-production/us-plant-insights" },
+      { label: "Global Cement Volumes",   href: "/supply-production/global-cement-volumes" },
+    ],
+  },
+  {
+    section: "Business Performance",
+    links: [
+      { label: "KPIs", href: "/business-performance/kpis" },
+    ],
+  },
+  {
+    section: "Stock & Valuation",
+    links: [
+      { label: "Stock Price Overview", href: "/stock-valuation/stock-price-overview" },
+      { label: "Analyst Section",      href: "/stock-valuation/analyst-section" },
+    ],
+  },
 ];
 
 export default function Footer() {

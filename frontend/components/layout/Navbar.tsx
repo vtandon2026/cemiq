@@ -9,7 +9,7 @@ const NAV_ITEMS = [
     label: "Construction Markets",
     children: [
       { label: "Construction Market Overview", href: "/construction-detail/construction-detail", desc: "Segment-level construction activity · Mekko & Growth view" },
-      { label: "Global Construction Map", href: "/construction-detail/world-view-map", desc: "Global construction activity · Choropleth & Bubble map" },
+      { label: "Global Construction Map", href: "/construction-detail/world-view-map", desc: "Global construction activity · Region Level & Country Level map" },
     ],
   },
   {
@@ -21,7 +21,7 @@ const NAV_ITEMS = [
         desc: "Top 3 share of local production capacity by country",
       },
       {
-        label: "Capacity by Company",
+        label: "Company Capacity Overview",
         href: "/cement-specific/company-capacity",
         desc: "Production capacity ranked by producer"
       },
@@ -30,6 +30,8 @@ const NAV_ITEMS = [
         href: "/cement-specific/ma-deals",
         desc: "Cement industry deal value & count by year",
       },
+      { label: "Cement Sales", href: "/cement-specific/cement-sales", desc: "Cement & concrete demand trends" },
+      { label: "Cement Demand", href: "/cement-specific/cement-demand", desc: "Demand & consumption growth by country" },
     ],
   },
   {
@@ -40,21 +42,19 @@ const NAV_ITEMS = [
       { label: "Global Cement Volumes", href: "/supply-production/global-cement-volumes", desc: "Country-level production data" },
     ],
   },
-  {
-    label: "Market Intelligence",
-    children: [
-      { label: "Construction Overall", href: "/market-intelligence/construction-overall", desc: "Global construction revenue by region" },
-      { label: "Building Materials Sales", href: "/market-intelligence/building-materials", desc: "Building products market breakdown" },
-      { label: "Cement Sales", href: "/market-intelligence/cement-sales", desc: "Cement & concrete demand trends" },
-      { label: "Cement Demand", href: "/market-intelligence/cement-demand", desc: "Demand & consumption growth by country" },
-      { label: "Executive Summary", href: "/market-intelligence/executive-summary", desc: "AI-generated country outlooks" },
-    ],
-  },
+  // {
+  //   label: "Market Intelligence",
+  //   children: [
+  //     { label: "Construction Overall", href: "/market-intelligence/construction-overall", desc: "Global construction revenue by region" },
+  //     { label: "Building Materials Sales", href: "/market-intelligence/building-materials", desc: "Building products market breakdown" },
+  //     { label: "Executive Summary", href: "/market-intelligence/executive-summary", desc: "AI-generated country outlooks" },
+  //   ],
+  // },
   {
     label: "Business Performance",
     children: [
       { label: "KPIs", href: "/business-performance/kpis", desc: "Company financial diagnosis" },
-      { label: "Profit Pools", href: "/business-performance/profit-pools", desc: "EBITDA margin by category" },
+      // { label: "Profit Pools", href: "/business-performance/profit-pools", desc: "EBITDA margin by category" },
     ],
   },
   {
