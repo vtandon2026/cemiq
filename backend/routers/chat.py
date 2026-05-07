@@ -19,6 +19,9 @@ router = APIRouter()
 # ── Scope → DataFrames ────────────────────────────────────────────────────────
 
 def _get_sheets(scope: str) -> dict:
+    if scope == "trade":
+        import pandas as pd
+        return {"Data (full)": pd.DataFrame(), "Data (current view)": pd.DataFrame()}
     if scope == "flat_file":
         from services.flat_file_loader import get_flat_file_df
         df = get_flat_file_df()
@@ -108,8 +111,8 @@ def _trim_context(ctx: dict, max_chars: int = 3000) -> dict:
         return ctx
     # Never trim these critical fields
     protected = {"all_years_data", "all_countries_data", "CRITICAL_FACTS",
-                 "highest_value_year", "highest_count_year", "highest_concentration",
-                 "largest_capacity", "data_summary", "INSTRUCTIONS"}
+                  "highest_value_year", "highest_count_year", "highest_concentration",
+                 "largest_capacity", "data_summary", "INSTRUCTIONS", "direction", "measure"}
     trimmed = {k: v for k, v in ctx.items()
                if k in protected or k not in ("top_15_countries", "top_15_by_value",
                                                "cagr_table", "all_countries", "countries_shown")}
@@ -128,6 +131,23 @@ def _trim_context(ctx: dict, max_chars: int = 3000) -> dict:
 
 
 def _enrich_context(ctx: dict, scope: str, filters: dict) -> dict:
+    if scope == "trade":
+        all_years = ctx.get("all_years_data", [])
+        direction = ctx.get("direction", "")
+        measure   = ctx.get("measure", "")
+        if all_years:
+            highest = max(all_years, key=lambda x: x.get("value") or 0)
+            ctx["CRITICAL_FACTS"] = (
+                f"This is {direction} {measure} data for {ctx.get('country')}. "
+                f"HIGHEST YEAR: {highest.get('year')} with value {highest.get('value')}. "
+                "These are FACTS from the dataset. Do NOT override with training knowledge."
+            )
+        ctx["INSTRUCTIONS"] = (
+            f"This is cement {direction} {measure} data from Trademad. "
+            "ALWAYS use 'all_years_data' from context for year-level answers. "
+            "Values are in " + ("USD" if measure == "value" else "Tons") + ". "
+            "NEVER use training knowledge — use only the provided data."
+        )
     if scope == "construction_detail" and ctx.get("all_countries"):
         ctx["INSTRUCTIONS"] = (
             "1. For country market values/CAGR: read directly from all_countries field. "

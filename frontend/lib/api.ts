@@ -179,6 +179,21 @@ export const getCementDemandGrowth = (payload: {
 }) => api.post<GrowthData>("/data/cement-demand/growth", payload);
 
 
+export const getTradeMeta = (direction: string, measure: string) =>
+  cachedGet<{ countries: string[]; years: number[] }>(
+    "/data/trade/meta", { direction, measure }
+  );
+
+export const getTradeGrowth = (payload: {
+  direction: string;
+  measure: string;
+  country: string;
+  year_min?: number;
+  year_max?: number;
+  cutoff_year?: number;
+}) => api.post<GrowthData>("/data/trade/growth", payload);
+
+
 // ── Construction Detail ──────────────────────────────────────────────────────
 export const getConstructionDetailMeta = () =>
   cachedGet<{

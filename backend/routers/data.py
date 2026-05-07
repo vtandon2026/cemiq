@@ -407,6 +407,48 @@ def cement_demand_meta():
         "kpis":      gcm.get_available_kpis(df),
     }
 
+class TradeRequest(BaseModel):
+    direction:   str   # "import" | "export"
+    measure:     str   # "value" | "volume"
+    country:     str
+    year_min:    int   = 2006
+    year_max:    int   = 2025
+    cutoff_year: int   = 2024
+
+
+@router.get("/trade/meta")
+def trade_meta(direction: str = Query(...), measure: str = Query(...)):
+    """Countries and years available for a given trade direction+measure."""
+    from services.trademad_loader import get_trade_countries, get_trade_years
+    try:
+        return {
+            "countries": get_trade_countries(direction, measure),
+            "years":     get_trade_years(direction, measure),
+        }
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/trade/growth")
+def trade_growth(req: TradeRequest):
+    """GrowthData payload from Trademad trade files."""
+    from services.trademad_loader import get_trade_growth_data
+
+    def _compute():
+        try:
+            return get_trade_growth_data(
+                direction=req.direction,
+                measure=req.measure,
+                country=req.country,
+                year_min=req.year_min,
+                year_max=req.year_max,
+                cutoff_year=req.cutoff_year,
+            )
+        except (ValueError, FileNotFoundError) as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    return _cached("trade_growth", req.model_dump(mode="json"), _compute)
+
 @router.get("/stock-prices/meta")
 @functools.lru_cache(maxsize=1)
 def stock_prices_meta():

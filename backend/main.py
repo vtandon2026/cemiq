@@ -40,6 +40,8 @@ async def _preload_all():
     from services.cement_capacity_loader import get_gem_df
     from services.dealogic_loader import get_dealogic_df
     from services.bain_pov_loader           import get_bain_pov_df
+    from services.trademad_loader import _get_trade_df
+
 
     loaders = [
         ("CIQ Financials",  get_ciq_long_df),
@@ -52,6 +54,9 @@ async def _preload_all():
         ("M&A Deals", get_dealogic_df),
         ("Bain POV",        get_bain_pov_df),
     ]
+
+    for _d, _m in [("import","value"),("import","volume"),("export","value"),("export","volume")]:
+        loaders.append((f"Trade {_d} {_m}", lambda d=_d, m=_m: _get_trade_df(d, m)))
 
     async def _warm(name: str, fn):
         try:
