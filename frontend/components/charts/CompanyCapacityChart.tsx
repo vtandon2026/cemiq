@@ -220,12 +220,19 @@ export default function CompanyCapacityChart({ data, height = 480, colorMode = "
       </svg>
 
       {/* ── Tooltip ───────────────────────────────────────────── */}
-      {tooltip && (
+      {tooltip && (() => {
+        const tipW = 210;
+        const tipH = 180;
+        let left = tooltip.x - tipW / 2;
+        let top  = tooltip.y - tipH - 16;
+        if (left < 0) left = 4;
+        if (left + tipW > width) left = width - tipW - 4;
+        if (top < 0) top = tooltip.y + 24;
+        return (
         <div style={{
           position: "absolute",
-          left: tooltip.x,
-          top: Math.max(0, tooltip.y - 10),
-          transform: "translateX(-50%)",
+          left, top,
+          width: tipW,
           background: "#fff",
           border: "0.5px solid #e2e8f0",
           borderRadius: 10,
@@ -234,7 +241,6 @@ export default function CompanyCapacityChart({ data, height = 480, colorMode = "
           fontSize: 12,
           pointerEvents: "none",
           zIndex: 10,
-          minWidth: 200,
           fontFamily: F,
         }}>
           {/* Rank badge + company */}
@@ -270,7 +276,8 @@ export default function CompanyCapacityChart({ data, height = 480, colorMode = "
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
