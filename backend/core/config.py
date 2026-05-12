@@ -60,7 +60,7 @@ class Settings(BaseSettings):
 
     # ── App ───────────────────────────────────────────────────────────────────
     APP_ENV: str = "development"
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://10.42.240.91:3000"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://10.42.113.110:3000"
 
     class Config:
         env_file = ".env"

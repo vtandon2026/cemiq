@@ -6,7 +6,7 @@ const nextConfig = {
       { protocol: "https", hostname: "**" },
     ],
   },
-  allowedDevOrigins: ['10.42.113.105'],
+  allowedDevOrigins: ['10.42.113.110'],
 };
 
 export default nextConfig;
