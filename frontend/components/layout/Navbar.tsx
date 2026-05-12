@@ -64,7 +64,16 @@ const NAV_ITEMS = [
       { label: "Analyst Section", href: "/stock-valuation/analyst-section", desc: "Analyst benchmarking" },
     ],
   },
-
+  {
+    label: "ESG & Future Tech",
+    children: [
+      {
+        label: "The Carbon Problem",
+        href: "/esg-and-future-tech/the-carbon-problem",
+        desc: "Wet vs dry capacity, plant footprint & transition risk",
+      },
+    ],
+  },
 ];
 
 export default function Navbar() {

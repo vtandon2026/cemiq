@@ -6,6 +6,8 @@ import type {
   GrowthData, MekkoRow, ProfitPoolRow, PlantRow, UsMekkoRow,
   GlobalCementRow, GlobalCagrRow, StockPriceData, ExecSection,
   KpiPointRow, KpiTimeSeriesRow, ChatMessage,
+  CarbonMeta, CarbonKpis, CarbonHeroData, CarbonMapData,
+  CarbonIntegratedGrindingData, CarbonPlantAgeData,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -296,6 +298,58 @@ export const exportPptx = (payload: {
 
 export const listTemplates = () =>
   api.get<Record<string, { exists: boolean; path: string }>>("/export/templates");
+
+// ── Carbon Problem (ESG & Future Tech) ────────────────────────────────────────
+ 
+export interface CarbonFilterPayload {
+  countries?:   string[] | null;
+  company?:     string | null;
+  companies?:   string[] | null;
+  plant_type?:  string | null;
+  statuses?:    string[] | null;
+  top_n?:       number;
+  axis?:        "company" | "plant" | null;
+}
+ 
+export const getCarbonMeta = () =>
+  cachedGet<CarbonMeta>("/carbon-problem/meta");
+ 
+const _carbonCompaniesCache = new Map<string, { data: { companies: string[] }; ts: number }>();
+const CARBON_COMPANIES_TTL = 5 * 60 * 1000;
+ 
+export const getCarbonCompanies = (countries?: string[] | null) => {
+  const key = JSON.stringify(countries ?? []);
+  const cached = _carbonCompaniesCache.get(key);
+  if (cached && Date.now() - cached.ts < CARBON_COMPANIES_TTL) {
+    return Promise.resolve({ data: cached.data });
+  }
+ 
+  // Send as comma-joined string. Bulletproof — no axios serialization quirks.
+  const params = countries && countries.length
+    ? { countries: countries.join(",") }
+    : undefined;
+ 
+  return api.get<{ companies: string[] }>("/carbon-problem/companies", { params })
+    .then((res) => {
+      _carbonCompaniesCache.set(key, { data: res.data, ts: Date.now() });
+      return res;
+    });
+};
+ 
+export const getCarbonKpis = (payload: CarbonFilterPayload) =>
+  api.post<CarbonKpis>("/carbon-problem/kpis", payload);
+ 
+export const getCarbonHero = (payload: CarbonFilterPayload) =>
+  api.post<CarbonHeroData>("/carbon-problem/hero", payload);
+ 
+export const getCarbonMap = (payload: CarbonFilterPayload) =>
+  api.post<CarbonMapData>("/carbon-problem/map", payload);
+ 
+export const getCarbonIntegratedGrinding = (payload: CarbonFilterPayload) =>
+  api.post<CarbonIntegratedGrindingData>("/carbon-problem/integrated-grinding", payload);
+ 
+export const getCarbonPlantAge = (payload: CarbonFilterPayload & { reference_year?: number }) =>
+  api.post<CarbonPlantAgeData>("/carbon-problem/plant-age", payload);
 
 // ── Deck Builder ──────────────────────────────────────────────────────────────
 export const getDeckMeta = () =>

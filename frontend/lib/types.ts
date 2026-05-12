@@ -180,3 +180,77 @@ export interface ChatMessageFull {
   table?: ChatTableBlock;
   derivation?: ChatDerivationBlock;
 }
+
+// ── Carbon Problem (ESG & Future Tech) ───────────────────────────────────────
+export interface CarbonMeta {
+  countries:   string[];
+  companies:   string[];
+  plant_types: string[];
+  statuses:    string[];
+}
+ 
+export interface CarbonKpis {
+  total_cement_capacity:  number;
+  total_clinker_capacity: number;
+  pct_wet_capacity:       number | null;
+  pct_alt_fuel:           number | null;
+  plant_count:            number;
+}
+ 
+export interface CarbonHeroRow {
+  label:     string;        // company name OR plant name
+  dry:       number;
+  wet:       number;
+  mixed:     number;
+  unknown:   number;
+  total:     number;
+  is_other?: boolean;
+}
+ 
+export interface CarbonHeroData {
+  data:        CarbonHeroRow[];
+  x_axis_type: "company" | "plant";
+  unit:        string;
+  is_drilled?: boolean;
+}
+ 
+export interface CarbonMapPoint {
+  plant_name:        string;
+  company:           string;
+  country:           string;
+  lat:               number;
+  lon:               number;
+  cement_capacity:   number | null;
+  clinker_capacity:  number;
+  production_type:   "dry" | "wet" | "mixed";
+  ccs:               boolean | null;
+  alt_fuel:          boolean | null;
+  plant_type:        string;
+}
+ 
+export interface CarbonMapData {
+  data:  CarbonMapPoint[];
+  count: number;
+}
+ 
+export interface CarbonIntegratedGrindingRow {
+  plant_type: string;
+  capacity:   number;
+}
+ 
+export interface CarbonIntegratedGrindingData {
+  data: CarbonIntegratedGrindingRow[];
+  unit: string;
+}
+ 
+export interface CarbonPlantAgeRow {
+  bucket:   string;
+  count:    number;
+  capacity: number;
+}
+ 
+export interface CarbonPlantAgeData {
+  data:           CarbonPlantAgeRow[];
+  reference_year: number;
+  unit:           string;
+}
