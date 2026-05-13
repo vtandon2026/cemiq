@@ -72,6 +72,11 @@ const NAV_ITEMS = [
         href: "/esg-and-future-tech/the-carbon-problem",
         desc: "Wet vs dry capacity, plant footprint & transition risk",
       },
+      {
+        label: "Transition Readiness",
+        href: "/esg-and-future-tech/transition-readiness",
+        desc: "How the industry is responding to the low-carbon transition"
+      },
     ],
   },
 ];

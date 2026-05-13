@@ -48,19 +48,21 @@ const CARDS = [
 ];
 
 const PAGES = [
-  { section: "Construction Markets", label: "Construction Market Overview", href: "/construction-detail/construction-detail", desc: "Mekko & Growth view · segment-level activity" },
-  { section: "Construction Markets", label: "Global Construction Map",      href: "/construction-detail/world-view-map",         desc: "Choropleth & Bubble map · country-level" },
-  { section: "Cement Analytics",     label: "Capacity Concentration",       href: "/cement-specific/capacity-concentration",     desc: "Top 3 share by country · GEM Tracker" },
-  { section: "Cement Analytics",     label: "Company Capacity Overview",          href: "/cement-specific/company-capacity",           desc: "Producer rankings · capacity leaderboard" },
-  { section: "Cement Analytics",     label: "M&A Activity",                 href: "/cement-specific/ma-deals",                   desc: "Deal value & count by year · Dealogic" },
-  { section: "Cement Analytics",     label: "Cement Sales",                 href: "/cement-specific/cement-sales",               desc: "Cement & concrete demand trends" },
-  { section: "Cement Analytics",     label: "Cement Demand",                href: "/cement-specific/cement-demand",              desc: "Demand & consumption growth by country" },
-  { section: "Supply & Production",  label: "US Production Overview",       href: "/supply-production/us-production-overview",   desc: "Capacity by producer & state" },
-  { section: "Supply & Production",  label: "US Plant Level Insights",      href: "/supply-production/us-plant-insights",        desc: "Interactive plant location map" },
-  { section: "Supply & Production",  label: "Global Cement Volumes",        href: "/supply-production/global-cement-volumes",    desc: "Country-level production data" },
-  { section: "Business Performance", label: "KPIs",                         href: "/business-performance/kpis",                  desc: "Company financial diagnosis · 20+ KPIs" },
-  { section: "Stock & Valuation",    label: "Stock Price Overview",         href: "/stock-valuation/stock-price-overview",       desc: "Indexed share price performance" },
-  // { section: "Stock & Valuation",    label: "Analyst Section",              href: "/stock-valuation/analyst-section",            desc: "Analyst benchmarking" },
+  { section: "Construction Markets", label: "Construction Market Overview", href: "/construction-detail/construction-detail",      desc: "Mekko & Growth view · segment-level activity" },
+  { section: "Construction Markets", label: "Global Construction Map",      href: "/construction-detail/world-view-map",           desc: "Choropleth & Bubble map · country-level" },
+  { section: "Cement Analytics",     label: "Capacity Concentration",       href: "/cement-specific/capacity-concentration",       desc: "Top 3 share by country · GEM Tracker" },
+  { section: "Cement Analytics",     label: "Company Capacity Overview",    href: "/cement-specific/company-capacity",             desc: "Producer rankings · capacity leaderboard" },
+  { section: "Cement Analytics",     label: "M&A Activity",                 href: "/cement-specific/ma-deals",                     desc: "Deal value & count by year · Dealogic" },
+  { section: "Cement Analytics",     label: "Cement Sales",                 href: "/cement-specific/cement-sales",                 desc: "Cement & concrete demand trends" },
+  { section: "Cement Analytics",     label: "Cement Demand",                href: "/cement-specific/cement-demand",                desc: "Demand & consumption growth by country" },
+  { section: "Supply & Production",  label: "US Production Overview",       href: "/supply-production/us-production-overview",     desc: "Capacity by producer & state" },
+  { section: "Supply & Production",  label: "US Plant Level Insights",      href: "/supply-production/us-plant-insights",          desc: "Interactive plant location map" },
+  { section: "Supply & Production",  label: "Global Cement Volumes",        href: "/supply-production/global-cement-volumes",      desc: "Country-level production data" },
+  { section: "Business Performance", label: "KPIs",                         href: "/business-performance/kpis",                    desc: "Company financial diagnosis · 20+ KPIs" },
+  { section: "Stock & Valuation",    label: "Stock Price Overview",         href: "/stock-valuation/stock-price-overview",         desc: "Indexed share price performance" },
+  { section: "Stock & Valuation",    label: "Analyst Section",              href: "/stock-valuation/analyst-section",              desc: "Analyst benchmarking" },
+  { section: "ESG & Future Tech",    label: "The Carbon Problem",           href: "/esg-and-future-tech/the-carbon-problem",       desc: "Wet vs dry capacity · plant footprint · transition risk" },
+  { section: "ESG & Future Tech",    label: "Transition Readiness",         href: "/esg-and-future-tech/transition-readiness",     desc: "Carbon exposure vs readiness matrix · technology adoption" },
 ];
 
 const FEATURES = [
@@ -95,7 +97,7 @@ const STATS = [
   { value: "2019", label: "Data from" },
   { value: "2029", label: "Forecast horizon" },
   { value: "20+",  label: "KPIs tracked" },
-  { value: "12",   label: "Active pages" },
+  { value: "15", label: "Active pages" },
   { value: "100%", label: "Bain-sourced data" },
 ];
 
@@ -116,6 +118,7 @@ const SECTION_COLORS: Record<string, string> = {
   "Supply & Production":  "#059669",
   "Business Performance": "#7c3aed",
   "Stock & Valuation":    "#d97706",
+  "ESG & Future Tech":    "#0d9488",
 };
 
 export default function HomePage() {
