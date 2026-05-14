@@ -31,13 +31,19 @@ _cache = ResponseCache(maxsize=128, ttl_seconds=1800)
 
 # ── Common filter model ───────────────────────────────────────────────────────
 class GreenFilters(BaseModel):
-    regions:    Optional[List[str]] = None
-    countries:  Optional[List[str]] = None
-    companies:  Optional[List[str]] = None
-    statuses:   Optional[List[str]] = None
-    tech_types: Optional[List[str]] = None
-    group_by:   Optional[str]       = None   # "company" | "region"
-    top_n:      int                 = 12
+    regions:             Optional[List[str]] = None
+    countries:           Optional[List[str]] = None
+    companies:           Optional[List[str]] = None
+    statuses:            Optional[List[str]] = None
+    tech_types:          Optional[List[str]] = None
+    group_by:            Optional[str]       = None   # "company" | "region"
+    top_n:               int                 = 9999   # no cap by default
+    # Highlight params: rows whose label matches will be marked `highlighted: true`
+    # in the response. The functions do NOT filter by these — they're used for
+    # peer-comparison views where the user wants to see the selected entity
+    # in context of its siblings.
+    highlight_countries: Optional[List[str]] = None
+    highlight_companies: Optional[List[str]] = None
 
 
 # ── Meta ──────────────────────────────────────────────────────────────────────
@@ -93,6 +99,7 @@ def green_future_map(req: GreenFilters):
             regions=req.regions, countries=req.countries,
             companies=req.companies, statuses=req.statuses,
             tech_types=req.tech_types,
+            highlight_companies=req.highlight_companies,
         )
     key = ResponseCache.make_key("green_map", req.model_dump(mode="json"))
     try:
@@ -110,6 +117,8 @@ def green_future_scatter(req: GreenFilters):
             companies=req.companies, statuses=req.statuses,
             tech_types=req.tech_types,
             group_by=(req.group_by or "company"),
+            highlight_countries=req.highlight_countries,
+            highlight_companies=req.highlight_companies,
         )
     key = ResponseCache.make_key("green_scatter", req.model_dump(mode="json"))
     try:
@@ -128,6 +137,8 @@ def green_future_capacity_mix(req: GreenFilters):
             tech_types=req.tech_types,
             group_by=(req.group_by or "region"),
             top_n=req.top_n,
+            highlight_countries=req.highlight_countries,
+            highlight_companies=req.highlight_companies,
         )
     key = ResponseCache.make_key("green_mix", req.model_dump(mode="json"))
     try:
@@ -144,6 +155,7 @@ def green_future_heatmap(req: GreenFilters):
             regions=req.regions, countries=req.countries,
             companies=req.companies, statuses=req.statuses,
             tech_types=req.tech_types,
+            highlight_countries=req.highlight_countries,
         )
     key = ResponseCache.make_key("green_heatmap", req.model_dump(mode="json"))
     try:

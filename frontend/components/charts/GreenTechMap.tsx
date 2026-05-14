@@ -125,16 +125,24 @@ export default function GreenTechMap({ data, height = 480 }: Props) {
 
       const ordered = [...data].sort((a, b) => b.size_cap - a.size_cap);
 
+      // When any plant carries the highlight flag, we're in "focus mode":
+      // highlighted plants render with their normal colors; everyone else is
+      // grayed out so the focus pops without needing red borders or size diffs.
+      const anyHighlighted = data.some(p => p.highlighted);
+      const GRAY = "#cbd5e1";
+
       ordered.forEach((row) => {
-        const color  = colorFor(row.tech_tag);
-        const radius = scaleR(row.size_cap);
+        const useGray = anyHighlighted && !row.highlighted;
+        const baseRadius = scaleR(row.size_cap);
+        const radius = baseRadius;   // keep all bubbles at normal size in focus mode
 
         const circle = L.circleMarker([row.lat, row.lon], {
           radius,
-          fillColor:   color,
-          fillOpacity: 0.72,
-          color:       "rgba(255,255,255,0.9)",
-          weight:      1.2,
+          fillColor:   useGray ? GRAY : colorFor(row.tech_tag),
+          // Grayed-out bubbles are softer; focused bubbles render at normal opacity.
+          fillOpacity: useGray ? 0.35 : 0.78,
+          color:       useGray ? "rgba(148,163,184,0.4)" : "rgba(255,255,255,0.9)",
+          weight:      useGray ? 0.6 : 1.2,
         });
 
         const cementStr  = row.cement_capacity != null ? `${row.cement_capacity.toFixed(2)} Mtpa` : "—";
@@ -144,7 +152,7 @@ export default function GreenTechMap({ data, height = 480 }: Props) {
         const popupHtml = `<div style="font-family:Arial,Helvetica,sans-serif;padding:12px 14px">
             <div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:2px">${escapeHtml(row.plant_name || "Unknown plant")}</div>
             <div style="font-size:11px;color:#64748b;margin-bottom:10px;display:flex;align-items:center;gap:5px">
-              <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>
+              <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorFor(row.tech_tag)};flex-shrink:0"></span>
               ${labelFor(row.tech_tag)} · ${escapeHtml(row.country)}
             </div>
             <div style="border-top:0.5px solid #f1f5f9;padding-top:8px;display:flex;flex-direction:column;gap:5px">

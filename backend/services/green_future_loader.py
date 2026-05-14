@@ -285,6 +285,26 @@ def get_meta() -> dict:
         .to_dict()
     )
 
+    # company -> primary region map. A company can operate plants across regions;
+    # we pick the region with the largest total cement capacity for that company.
+    # Frontend uses this to widen the chart scope when a Company is selected.
+    cap = pd.to_numeric(df[COL_CEMENT_CAP], errors="coerce").fillna(0)
+    company_region_caps = (
+        df.assign(_cap=cap)
+          .dropna(subset=["_company"])
+          .groupby(["_company", "_region"])["_cap"]
+          .sum()
+          .reset_index()
+    )
+    # For each company, pick the region with max cap
+    company_to_region = (
+        company_region_caps
+        .sort_values("_cap", ascending=False)
+        .drop_duplicates("_company")
+        .set_index("_company")["_region"]
+        .to_dict()
+    )
+
     companies = sorted([
         c for c in df["_company"].dropna().unique().tolist()
         if c and c != "Unknown"
@@ -314,6 +334,7 @@ def get_meta() -> dict:
         "statuses":          statuses,
         "tech_types":        tech_types,
         "country_to_region": country_to_region,
+        "company_to_region": company_to_region,
     }
 
 
@@ -388,11 +409,12 @@ def get_kpis(
 
 
 def get_map_points(
-    regions:    Optional[list[str]] = None,
-    countries:  Optional[list[str]] = None,
-    companies:  Optional[list[str]] = None,
-    statuses:   Optional[list[str]] = None,
-    tech_types: Optional[list[str]] = None,
+    regions:             Optional[list[str]] = None,
+    countries:           Optional[list[str]] = None,
+    companies:           Optional[list[str]] = None,
+    statuses:            Optional[list[str]] = None,
+    tech_types:          Optional[list[str]] = None,
+    highlight_companies: Optional[list[str]] = None,
 ) -> dict:
     """
     Green Technology Adoption Map.
@@ -400,6 +422,10 @@ def get_map_points(
       • Size = cement capacity (fallback to clinker if cement is null)
       • Color = primary tech (priority: CCUS > Clay > Alt Fuel)
     Plants with no green tech are excluded — this is the *adoption* map.
+
+    highlight_companies marks plants whose company matches with `highlighted: true`,
+    without filtering. Used when the user picks Company + Country/Region and
+    wants to see siblings in scope with the chosen company emphasized.
     """
     df  = get_green_df()
     sub = _apply_filters(df, regions=regions, countries=countries,
@@ -416,6 +442,8 @@ def get_map_points(
         (sub["_alt_fuel_bool"] == True)     # noqa: E712
     ]
 
+    hl_set: set[str] = set(highlight_companies or [])
+
     points = []
     for _, r in sub.iterrows():
         cement_cap = (float(r[COL_CEMENT_CAP])
@@ -424,11 +452,8 @@ def get_map_points(
                        if pd.notna(r[COL_CLINKER_CAP]) else None)
         size_cap = cement_cap if (cement_cap is not None and cement_cap > 0) else (clinker_cap or 0.0)
         if size_cap <= 0:
-            # Nothing to size a bubble with, but it has a tech flag — skip.
             continue
 
-        # Priority for color tag — use _truthy() to handle both Python bool
-        # and numpy.bool_ (which can creep in after DataFrame copies/joins).
         ccus  = _truthy(r["_ccs_bool"])
         clay  = _truthy(r["_clay_bool"])
         alt   = _truthy(r["_alt_fuel_bool"])
@@ -439,33 +464,38 @@ def get_map_points(
         elif alt:
             tech_tag = "alt_fuel"
         else:
-            continue  # defensive — filter above should have caught this
+            continue
+
+        company = str(r.get("_company") or "Unknown")
 
         points.append({
-            "plant_name":      str(r.get("_plant_name") or ""),
-            "company":         str(r.get("_company") or "Unknown"),
-            "country":         str(r.get(COL_COUNTRY) or ""),
-            "lat":             float(r["_lat"]),
-            "lon":             float(r["_lon"]),
-            "cement_capacity": round(cement_cap, 3) if cement_cap is not None else None,
+            "plant_name":       str(r.get("_plant_name") or ""),
+            "company":          company,
+            "country":          str(r.get(COL_COUNTRY) or ""),
+            "lat":              float(r["_lat"]),
+            "lon":              float(r["_lon"]),
+            "cement_capacity":  round(cement_cap, 3) if cement_cap is not None else None,
             "clinker_capacity": round(clinker_cap, 3) if clinker_cap is not None else None,
-            "size_cap":        round(float(size_cap), 3),
-            "tech_tag":        tech_tag,
-            "ccus":            bool(ccus),
-            "clay":            bool(clay),
-            "alt_fuel":        bool(alt),
+            "size_cap":         round(float(size_cap), 3),
+            "tech_tag":         tech_tag,
+            "ccus":             bool(ccus),
+            "clay":             bool(clay),
+            "alt_fuel":         bool(alt),
+            "highlighted":      company in hl_set,
         })
 
     return {"data": points, "count": len(points)}
 
 
 def get_clinker_vs_adoption(
-    regions:    Optional[list[str]] = None,
-    countries:  Optional[list[str]] = None,
-    companies:  Optional[list[str]] = None,
-    statuses:   Optional[list[str]] = None,
-    tech_types: Optional[list[str]] = None,
-    group_by:   str = "company",   # "company" | "region"
+    regions:             Optional[list[str]] = None,
+    countries:           Optional[list[str]] = None,
+    companies:           Optional[list[str]] = None,
+    statuses:            Optional[list[str]] = None,
+    tech_types:          Optional[list[str]] = None,
+    group_by:            str = "company",   # "company" | "region"
+    highlight_countries: Optional[list[str]] = None,
+    highlight_companies: Optional[list[str]] = None,
 ) -> dict:
     """
     Supporting Chart 1 — Bubble scatter.
@@ -473,7 +503,11 @@ def get_clinker_vs_adoption(
       Y: future-tech adoption score (cap-weighted mean of (ccus+clay+alt)/3)
       Size: total cement capacity
       Color: region (categorical)
-    Only groups with non-NaN clinker ratio and >0 capacity are returned.
+
+    Highlight params do not filter — they mark output rows for the frontend
+    to render with a distinct style. The frontend uses these so that when a
+    user selects (e.g.) Germany, the Scatter shows all European countries
+    with Germany highlighted in red.
     """
     df  = get_green_df()
     sub = _apply_filters(df, regions=regions, countries=countries,
@@ -483,15 +517,31 @@ def get_clinker_vs_adoption(
     if sub.empty:
         return {"data": [], "group_by": group_by}
 
-    # We need plants with a defined clinker ratio AND a positive cement capacity
-    # for capacity-weighted averaging.
     sub = sub.copy()
     sub["_cap"] = pd.to_numeric(sub[COL_CEMENT_CAP], errors="coerce").fillna(0)
     sub = sub[sub["_cap"] > 0]
 
-    group_col = "_company" if group_by == "company" else "_region"
+    # ── Grouping column ──────────────────────────────────────────────────
+    # Region tab drills into countries when a region filter is active OR
+    # when there are countries to highlight (peer-comparison view).
+    # Company tab always groups by company.
+    drilldown = (group_by == "region" and (regions or highlight_countries))
+    if group_by == "company":
+        group_col = "_company"
+    elif drilldown:
+        group_col = COL_COUNTRY
+    else:
+        group_col = "_region"
     if group_col not in sub.columns:
         group_col = "_company"
+
+    highlight_set: set[str] = set()
+    if group_col == COL_COUNTRY and highlight_countries:
+        highlight_set = set(highlight_countries)
+    elif group_col == "_company" and highlight_companies:
+        highlight_set = set(highlight_companies)
+    # (Region grouping doesn't currently support highlighting since region
+    # is auto-selected upstream; if needed we can extend later.)
 
     rows = []
     for grp, g in sub.groupby(group_col):
@@ -499,28 +549,34 @@ def get_clinker_vs_adoption(
         if cap_sum <= 0:
             continue
 
-        # Cap-weighted clinker ratio (only over rows where it's known)
+        # Cap-weighted clinker ratio
         known = g[g["_clinker_ratio"].notna()]
         if known["_cap"].sum() > 0:
             cd = float((known["_clinker_ratio"] * known["_cap"]).sum() /
                        known["_cap"].sum())
         else:
-            continue   # can't place this group on the X-axis without a ratio
+            continue
 
-        # Cap-weighted adoption score (all rows — None tech flags already => 0)
         ad = float((g["_adoption_score"] * g["_cap"]).sum() / cap_sum)
 
-        # Dominant region for the dot's color (mode across plants)
         region_mode = g["_region"].mode()
         region_label = region_mode.iloc[0] if len(region_mode) else "Other"
 
+        # Country label for tooltip — relevant when grouping by company
+        # (so tooltip can say "Lafarge · France"). Mode handles multi-country
+        # companies; we just pick the dominant country.
+        country_mode = g[COL_COUNTRY].mode()
+        country_label = str(country_mode.iloc[0]) if len(country_mode) else ""
+
         rows.append({
-            "label":             str(grp),
+            "label":              str(grp),
             "clinker_dependency": round(cd, 3),
-            "adoption_score":    round(ad, 3),
-            "capacity":          round(cap_sum, 3),
-            "region":            str(region_label),
-            "plant_count":       int(len(g)),
+            "adoption_score":     round(ad, 3),
+            "capacity":           round(cap_sum, 3),
+            "region":             str(region_label),
+            "country":            country_label,
+            "plant_count":        int(len(g)),
+            "highlighted":        str(grp) in highlight_set,
         })
 
     rows.sort(key=lambda r: r["capacity"], reverse=True)
@@ -528,18 +584,23 @@ def get_clinker_vs_adoption(
 
 
 def get_capacity_mix(
-    regions:    Optional[list[str]] = None,
-    countries:  Optional[list[str]] = None,
-    companies:  Optional[list[str]] = None,
-    statuses:   Optional[list[str]] = None,
-    tech_types: Optional[list[str]] = None,
-    group_by:   str = "region",   # "region" | "company"
-    top_n:      int = 9999,       # default: return all; frontend handles zoom
+    regions:             Optional[list[str]] = None,
+    countries:           Optional[list[str]] = None,
+    companies:           Optional[list[str]] = None,
+    statuses:            Optional[list[str]] = None,
+    tech_types:          Optional[list[str]] = None,
+    group_by:            str = "region",   # "region" | "company"
+    top_n:               int = 9999,
+    highlight_countries: Optional[list[str]] = None,
+    highlight_companies: Optional[list[str]] = None,
 ) -> dict:
     """
     Supporting Chart 2 — 100% stacked bar.
     Buckets per group: legacy / transitioning / future_ready (capacity, Mtpa).
     Each row also carries pct_* fields summing to ~100.
+
+    Highlight params mark output rows without filtering — the frontend uses
+    them to render the highlighted bar with a distinct border.
     """
     df  = get_green_df()
     sub = _apply_filters(df, regions=regions, countries=countries,
@@ -554,7 +615,28 @@ def get_capacity_mix(
     sub = sub[sub["_cap"] > 0]
     sub["_tier"] = sub.apply(_classify_tier, axis=1)
 
-    group_col = "_company" if group_by == "company" else "_region"
+    # Drill-down trigger: when grouping by region AND we have either selected
+    # regions OR countries to highlight, split into countries.
+    drilldown = (group_by == "region" and (regions or highlight_countries))
+    if group_by == "company":
+        group_col = "_company"
+    elif drilldown:
+        group_col = COL_COUNTRY
+    else:
+        group_col = "_region"
+
+    highlight_set: set[str] = set()
+    if group_col == COL_COUNTRY and highlight_countries:
+        highlight_set = set(highlight_countries)
+    elif group_col == "_company" and highlight_companies:
+        highlight_set = set(highlight_companies)
+
+    # For tooltips: country label per group, when grouping by company
+    country_per_company: dict[str, str] = {}
+    if group_col == "_company":
+        for c, g in sub.groupby("_company"):
+            mode = g[COL_COUNTRY].mode()
+            country_per_company[str(c)] = str(mode.iloc[0]) if len(mode) else ""
 
     pivot = (
         sub.groupby([group_col, "_tier"])["_cap"]
@@ -570,7 +652,6 @@ def get_capacity_mix(
     pivot["total"] = pivot["legacy"] + pivot["transitioning"] + pivot["future_ready"]
     pivot = pivot[pivot["total"] > 0]
 
-    # For company view, top-N + "Other" bucket; for region view show all.
     if group_by == "company" and len(pivot) > top_n:
         pivot = pivot.sort_values("total", ascending=False)
         head = pivot.head(top_n).copy()
@@ -583,8 +664,9 @@ def get_capacity_mix(
             "total":          float(tail["total"].sum()),
         }])
         pivot = pd.concat([head, other_row], ignore_index=True)
+    elif drilldown:
+        pivot = pivot.sort_values("total", ascending=False)
     else:
-        # Region view: keep spec ordering when present
         if group_by == "region":
             ordered = HEATMAP_REGIONS + ["South America", "Other"]
             pivot["_ord"] = pivot["label"].apply(
@@ -597,8 +679,10 @@ def get_capacity_mix(
     rows = []
     for _, r in pivot.iterrows():
         total = float(r["total"]) or 1.0
+        label = str(r["label"])
         rows.append({
-            "label":             str(r["label"]),
+            "label":             label,
+            "country":           country_per_company.get(label, ""),
             "legacy":            round(float(r["legacy"]),         3),
             "transitioning":     round(float(r["transitioning"]),  3),
             "future_ready":      round(float(r["future_ready"]),   3),
@@ -606,23 +690,30 @@ def get_capacity_mix(
             "pct_legacy":        round(float(r["legacy"]) / total * 100,        1),
             "pct_transitioning": round(float(r["transitioning"]) / total * 100, 1),
             "pct_future_ready":  round(float(r["future_ready"]) / total * 100,  1),
+            "highlighted":       label in highlight_set,
         })
 
     return {"data": rows, "group_by": group_by, "unit": "Mtpa"}
 
 
 def get_tech_heatmap(
-    regions:    Optional[list[str]] = None,
-    countries:  Optional[list[str]] = None,
-    companies:  Optional[list[str]] = None,
-    statuses:   Optional[list[str]] = None,
-    tech_types: Optional[list[str]] = None,
+    regions:             Optional[list[str]] = None,
+    countries:           Optional[list[str]] = None,
+    companies:           Optional[list[str]] = None,
+    statuses:            Optional[list[str]] = None,
+    tech_types:          Optional[list[str]] = None,
+    highlight_countries: Optional[list[str]] = None,
 ) -> dict:
     """
     Supporting Chart 3 — Heatmap.
     Rows = technologies (CCUS, Clay Calcination, Alt Fuel).
-    Cols = regions (fixed: Europe / North America / China / APAC / MEA).
-    Cell = % of regional capacity enabled with that tech.
+    Cols = regions OR countries (drill-down when a region filter is active
+           or when highlight_countries is provided for peer-comparison view).
+    Cell = % of column's capacity enabled with that tech.
+
+    highlight_countries marks columns for the frontend to render with a
+    distinct border (e.g. when a country is selected, all sibling countries
+    appear and the selected one is bordered).
     """
     df  = get_green_df()
     sub = _apply_filters(df, regions=regions, countries=countries,
@@ -632,10 +723,26 @@ def get_tech_heatmap(
     sub = sub.copy()
     sub["_cap"] = pd.to_numeric(sub[COL_CEMENT_CAP], errors="coerce").fillna(0)
 
+    # Drill into countries when a region filter is active OR when there are
+    # countries to highlight.
+    drilldown = bool(regions or highlight_countries)
+    if drilldown:
+        country_caps = (sub.groupby(COL_COUNTRY)["_cap"].sum()
+                          .sort_values(ascending=False))
+        col_keys = country_caps[country_caps > 0].index.tolist()
+        col_label_key = COL_COUNTRY
+        unit_label = "% of country capacity"
+    else:
+        col_keys = HEATMAP_REGIONS
+        col_label_key = "_region"
+        unit_label = "% of regional capacity"
+
+    highlight_set: set[str] = set(highlight_countries or []) if drilldown else set()
+
     cells = []
-    region_totals = {}
-    for region in HEATMAP_REGIONS:
-        region_totals[region] = float(sub.loc[sub["_region"] == region, "_cap"].sum())
+    col_totals = {}
+    for col in col_keys:
+        col_totals[col] = float(sub.loc[sub[col_label_key] == col, "_cap"].sum())
 
     tech_specs = [
         ("ccus",     "CCUS",             "_ccs_bool"),
@@ -644,31 +751,34 @@ def get_tech_heatmap(
     ]
 
     for tech_key, tech_label, flag_col in tech_specs:
-        for region in HEATMAP_REGIONS:
-            total = region_totals[region]
+        for col in col_keys:
+            total = col_totals[col]
             if total <= 0:
                 cells.append({
-                    "tech":   tech_key,
+                    "tech":       tech_key,
                     "tech_label": tech_label,
-                    "region": region,
-                    "value":  None,
-                    "cap":    0.0,
+                    "region":     col,
+                    "value":      None,
+                    "cap":        0.0,
+                    "highlighted": col in highlight_set,
                 })
                 continue
             enabled_cap = float(
-                sub.loc[(sub["_region"] == region) & (sub[flag_col] == True), "_cap"].sum()  # noqa: E712
+                sub.loc[(sub[col_label_key] == col) & (sub[flag_col] == True), "_cap"].sum()  # noqa: E712
             )
             cells.append({
                 "tech":       tech_key,
                 "tech_label": tech_label,
-                "region":     region,
+                "region":     col,
                 "value":      round(enabled_cap / total * 100, 1),
                 "cap":        round(enabled_cap, 2),
+                "highlighted": col in highlight_set,
             })
 
     return {
-        "data":    cells,
-        "regions": HEATMAP_REGIONS,
-        "techs":   [{"value": t[0], "label": t[1]} for t in tech_specs],
-        "unit":    "% of regional capacity",
+        "data":               cells,
+        "regions":            col_keys,
+        "techs":              [{"value": t[0], "label": t[1]} for t in tech_specs],
+        "unit":               unit_label,
+        "highlighted_cols":   sorted(highlight_set & set(col_keys)),
     }

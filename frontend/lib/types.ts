@@ -268,6 +268,7 @@ export interface GreenMeta {
   statuses:          string[];
   tech_types:        GreenTechOption[];
   country_to_region: Record<string, string>;
+  company_to_region: Record<string, string>;
 }
  
 export interface GreenKpis {
@@ -294,6 +295,7 @@ export interface GreenMapPoint {
   ccus:              boolean;
   clay:              boolean;
   alt_fuel:          boolean;
+  highlighted:       boolean;
 }
  
 export interface GreenMapData {
@@ -307,7 +309,9 @@ export interface GreenScatterPoint {
   adoption_score:      number;
   capacity:            number;
   region:              string;
+  country:             string;
   plant_count:         number;
+  highlighted:         boolean;
 }
  
 export interface GreenScatterData {
@@ -317,6 +321,7 @@ export interface GreenScatterData {
  
 export interface GreenCapacityMixRow {
   label:             string;
+  country:           string;
   legacy:            number;
   transitioning:     number;
   future_ready:      number;
@@ -324,6 +329,7 @@ export interface GreenCapacityMixRow {
   pct_legacy:        number;
   pct_transitioning: number;
   pct_future_ready:  number;
+  highlighted:       boolean;
 }
  
 export interface GreenCapacityMixData {
@@ -333,16 +339,18 @@ export interface GreenCapacityMixData {
 }
  
 export interface GreenHeatmapCell {
-  tech:       GreenTechTag;
-  tech_label: string;
-  region:     string;
-  value:      number | null;     // % (null if region has zero capacity)
-  cap:        number;
+  tech:        GreenTechTag;
+  tech_label:  string;
+  region:      string;
+  value:       number | null;
+  cap:         number;
+  highlighted: boolean;
 }
  
 export interface GreenHeatmapData {
-  data:    GreenHeatmapCell[];
-  regions: string[];
-  techs:   { value: GreenTechTag; label: string }[];
-  unit:    string;
+  data:             GreenHeatmapCell[];
+  regions:          string[];
+  techs:            { value: GreenTechTag; label: string }[];
+  unit:             string;
+  highlighted_cols: string[];
 }

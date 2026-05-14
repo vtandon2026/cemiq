@@ -14,6 +14,7 @@ import {
   getGreenMeta, getGreenCompanies, getGreenKpis, getGreenMap,
   getGreenScatter, getGreenCapacityMix, getGreenHeatmap,
 } from "@/lib/api";
+import type { GreenFilterPayload } from "@/lib/api";
 import { BAIN_RED } from "@/lib/chartHelpers";
 import type {
   GreenMeta, GreenKpis, GreenMapData, GreenScatterData,
@@ -127,7 +128,7 @@ export default function FutureOfGreenCementPage() {
   const [companiesLoading,   setCompaniesLoading]   = useState(false);
 
   // Chart-level toggles
-  const [scatterGroupBy, setScatterGroupBy] = useState<"company" | "region">("company");
+  const [scatterGroupBy, setScatterGroupBy] = useState<"company" | "region">("region");
   const [mixGroupBy,     setMixGroupBy]     = useState<"region" | "company">("region");
 
   // Data
@@ -184,7 +185,9 @@ export default function FutureOfGreenCementPage() {
       .catch((e: Error) => { setError(e.message); setCompaniesLoading(false); });
   }, [regions, countries]);
 
-  // ── Build payload ──────────────────────────────────────────────────────────
+  // ── Build payloads ─────────────────────────────────────────────────────────
+  // basePayload: hard filters for KPIs, hero map, executive insight strip.
+  // These narrow strictly to whatever the user selected.
   const basePayload = useMemo(() => ({
     regions:    regions.length   ? regions   : null,
     countries:  countries.length ? countries : null,
@@ -192,6 +195,135 @@ export default function FutureOfGreenCementPage() {
     statuses:   statuses.length  ? statuses  : null,
     tech_types: techTypes.length ? techTypes : null,
   }), [regions, countries, companies, statuses, techTypes]);
+
+  // The three analysis charts use a hybrid filter+widening+highlight model:
+  //
+  //   ▸ Region selection         → hard scope (only that region's plants)
+  //   ▸ Country selection        → widens to country's parent region for
+  //                                Region tab + Heatmap (country highlighted);
+  //                                hard filter for Company tab
+  //   ▸ Company selection        → widens to company's parent region;
+  //                                highlights on Company tab; for Region tab
+  //                                and Heatmap, only the data scope is widened
+  //                                (no highlight there — highlight only makes
+  //                                sense on the axis that lists the entity)
+  //   ▸ Country + Company        → Country wins for Company tab (hard filter);
+  //                                widening still applies for Region tab/Heatmap
+  //
+  // Status & TechType are always hard filters across all charts.
+  const country_to_region = meta?.country_to_region ?? {};
+  const company_to_region = meta?.company_to_region ?? {};
+
+  // Effective region scope for analysis charts — explicit Region wins; else
+  // derive from selected Countries; else from selected Companies; else null.
+  const widenedRegions = useMemo<string[] | null>(() => {
+    if (regions.length) return regions;
+    const fromCountries = countries.map(c => country_to_region[c]).filter(Boolean);
+    if (fromCountries.length) return Array.from(new Set(fromCountries));
+    const fromCompanies = companies.map(c => company_to_region[c]).filter(Boolean);
+    if (fromCompanies.length) return Array.from(new Set(fromCompanies));
+    return null;
+  }, [regions, countries, companies, country_to_region, company_to_region]);
+
+  // Map payload — separate from basePayload because we want widen-and-highlight
+  // behavior on Company filter:
+  //   • Company alone           → hard filter (only that company's plants)
+  //   • Country + Company       → show all plants in country, highlight company's
+  //   • Region + Company        → show all plants in region, highlight company's
+  //   • All other states        → hard filter (current basePayload behavior)
+  const mapPayload = useMemo<GreenFilterPayload>(() => {
+    const hasOtherScope = regions.length > 0 || countries.length > 0;
+    const widenForCompany = companies.length > 0 && hasOtherScope;
+
+    return {
+      regions:             regions.length   ? regions   : null,
+      countries:           countries.length ? countries : null,
+      // When widening for company: drop company from the data filter so the
+      // backend returns all plants in the broader scope; pass the company
+      // name as highlight_companies instead. Otherwise keep it as a hard filter.
+      companies:           widenForCompany ? null : (companies.length ? companies : null),
+      statuses:            statuses.length  ? statuses  : null,
+      tech_types:          techTypes.length ? techTypes : null,
+      highlight_companies: widenForCompany ? companies : null,
+    };
+  }, [regions, countries, companies, statuses, techTypes]);
+
+  // Payload for the Scatter chart, depending on which tab is active.
+  const scatterPayload = useMemo<GreenFilterPayload>(() => {
+    const payload: GreenFilterPayload = scatterGroupBy === "company" ? {
+      // Company tab: Country acts as a hard filter; Company highlights.
+      regions:             widenedRegions,
+      countries:           countries.length ? countries : null,
+      companies:           null,
+      statuses:            statuses.length  ? statuses  : null,
+      tech_types:          techTypes.length ? techTypes : null,
+      highlight_countries: null,
+      highlight_companies: companies.length ? companies : null,
+      group_by:            "company",
+    } : {
+      // Region tab: shows ALL countries in the (widened) region scope. Country
+      // is rendered as a highlight only. Company has NO effect on this tab —
+      // it doesn't filter data, doesn't highlight anything (companies aren't
+      // shown here). This keeps the Region tab a stable comparative view of
+      // sibling countries regardless of company selection.
+      regions:             widenedRegions,
+      countries:           null,
+      companies:           null,
+      statuses:            statuses.length  ? statuses  : null,
+      tech_types:          techTypes.length ? techTypes : null,
+      highlight_countries: countries.length ? countries : null,
+      highlight_companies: null,
+      group_by:            "region",
+    };
+    // TEMPORARY: Remove after verifying filter behavior
+    if (typeof window !== "undefined") {
+      // eslint-disable-next-line no-console
+      console.log("[scatterPayload]", JSON.stringify(payload));
+    }
+    return payload;
+  }, [scatterGroupBy, widenedRegions, countries, companies, statuses, techTypes]);
+
+  // Payload for the Capacity Mix chart — same logic as scatter.
+  const mixPayload = useMemo<GreenFilterPayload>(() => {
+    if (mixGroupBy === "company") {
+      return {
+        regions:             widenedRegions,
+        countries:           countries.length ? countries : null,
+        companies:           null,
+        statuses:            statuses.length  ? statuses  : null,
+        tech_types:          techTypes.length ? techTypes : null,
+        highlight_countries: null,
+        highlight_companies: companies.length ? companies : null,
+        group_by:            "company",
+        top_n:               9999,   // explicit: never apply backend top-N cap
+      };
+    }
+    return {
+      // Region tab: shows ALL countries in the (widened) region scope.
+      // Company has no effect on this tab. Country is rendered as a highlight only.
+      regions:             widenedRegions,
+      countries:           null,
+      companies:           null,
+      statuses:            statuses.length  ? statuses  : null,
+      tech_types:          techTypes.length ? techTypes : null,
+      highlight_countries: countries.length ? countries : null,
+      highlight_companies: null,
+      group_by:            "region",
+      top_n:               9999,
+    };
+  }, [mixGroupBy, widenedRegions, countries, companies, statuses, techTypes]);
+
+  // Payload for the Heatmap — same as Region tab logic (columns are regions
+  // or countries, never companies, so Company filter has no effect here).
+  const heatmapPayload = useMemo<GreenFilterPayload>(() => ({
+    regions:             widenedRegions,
+    countries:           null,
+    companies:           null,
+    statuses:            statuses.length  ? statuses  : null,
+    tech_types:          techTypes.length ? techTypes : null,
+    highlight_countries: countries.length ? countries : null,
+    highlight_companies: null,
+  }), [widenedRegions, countries, statuses, techTypes]);
 
   // Compact scope label for the executive insight strip.
   // Prefers the narrowest active filter that still reads naturally.
@@ -209,10 +341,10 @@ export default function FutureOfGreenCementPage() {
     setError(null);
     Promise.all([
       getGreenKpis(basePayload),
-      getGreenMap(basePayload),
-      getGreenScatter({ ...basePayload, group_by: scatterGroupBy }),
-      getGreenCapacityMix({ ...basePayload, group_by: mixGroupBy }),
-      getGreenHeatmap(basePayload),
+      getGreenMap(mapPayload),
+      getGreenScatter(scatterPayload),
+      getGreenCapacityMix(mixPayload),
+      getGreenHeatmap(heatmapPayload),
     ])
       .then(([k, m, s, mix, h]) => {
         setKpis(k.data);
@@ -220,13 +352,29 @@ export default function FutureOfGreenCementPage() {
         setScatterData(s.data);
         setMixData(mix.data);
         setHeatmapData(h.data);
+        // TEMPORARY DIAG: confirm what backend returned for scatter + mix
+        if (typeof window !== "undefined") {
+          // eslint-disable-next-line no-console
+          console.log("[scatter response]", {
+            count: s.data.data.length,
+            group_by: s.data.group_by,
+            unique_regions: Array.from(new Set(s.data.data.map(r => r.region))),
+            first_3: s.data.data.slice(0, 3),
+          });
+          // eslint-disable-next-line no-console
+          console.log("[mix response]", {
+            count: mix.data.data.length,
+            group_by: mix.data.group_by,
+            labels: mix.data.data.map(r => r.label),
+          });
+        }
         setLoading(false);
       })
       .catch((e: Error) => {
         setError(e.message);
         setLoading(false);
       });
-  }, [basePayload, scatterGroupBy, mixGroupBy]);
+  }, [basePayload, mapPayload, scatterPayload, mixPayload, heatmapPayload]);
 
   const kpiStrip = (
     <div style={{ display: "flex", gap: 12 }}>
@@ -464,8 +612,22 @@ export default function FutureOfGreenCementPage() {
                   <LoadingSpinner height={420} />
                 ) : (
                   <ClinkerVsTechScatter
+                    // Force-remount on filter/tab change. Without this, ECharts
+                    // can hold stale data across rapid filter changes due to its
+                    // internal animation/instance caching.
+                    key={`scatter|${scatterGroupBy}|${(regions ?? []).join(",")}|${(countries ?? []).join(",")}|${(companies ?? []).join(",")}`}
                     data={scatterData?.data ?? []}
                     groupBy={scatterGroupBy}
+                    showCountry={regions.length > 0}
+                    seriesLabelOverride={
+                      scatterGroupBy === "company" && countries.length > 0
+                        ? (countries.length === 1
+                            ? countries[0]
+                            : countries.length <= 3
+                              ? countries.join(", ")
+                              : `${countries.length} countries`)
+                        : undefined
+                    }
                     height={420}
                   />
                 )}
@@ -487,8 +649,10 @@ export default function FutureOfGreenCementPage() {
                   <LoadingSpinner height={420} />
                 ) : (
                   <FutureCapacityMixBar
+                    key={`mix|${mixGroupBy}|${(regions ?? []).join(",")}|${(countries ?? []).join(",")}|${(companies ?? []).join(",")}`}
                     data={mixData?.data ?? []}
                     groupBy={mixGroupBy}
+                    showCountry={regions.length > 0}
                     height={420}
                   />
                 )}
@@ -503,7 +667,11 @@ export default function FutureOfGreenCementPage() {
               {loading && !heatmapData ? (
                 <LoadingSpinner height={280} />
               ) : (
-                <TechAdoptionHeatmap data={heatmapData} height={280} />
+                <TechAdoptionHeatmap
+                  key={`heat|${(regions ?? []).join(",")}|${(countries ?? []).join(",")}|${(companies ?? []).join(",")}`}
+                  data={heatmapData}
+                  height={280}
+                />
               )}
             </ChartCard>
           </div>

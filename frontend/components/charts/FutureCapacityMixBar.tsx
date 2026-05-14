@@ -14,6 +14,8 @@ interface Props {
   data:    GreenCapacityMixRow[];
   height?: number;
   groupBy?: "company" | "region";
+  // When true, tooltip includes the country line (Region filter active in page).
+  showCountry?: boolean;
 }
 
 export interface FutureCapacityMixBarHandle {
@@ -27,7 +29,7 @@ const COLOR_TRANSITIONING = "#F59E0B";   // amber
 const COLOR_FUTURE_READY  = "#10B981";   // emerald
 
 const FutureCapacityMixBar = forwardRef<FutureCapacityMixBarHandle, Props>(
-  function FutureCapacityMixBar({ data, height = 380, groupBy = "region" }, ref) {
+  function FutureCapacityMixBar({ data, height = 380, groupBy = "region", showCountry = false }, ref) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const echartsRef = useRef<any>(null);
     const [isZoomed, setIsZoomed] = useState(false);
@@ -68,7 +70,12 @@ const FutureCapacityMixBar = forwardRef<FutureCapacityMixBarHandle, Props>(
             const row = data[idx];
             if (!row) return "";
             // Full untruncated name in tooltip
-            let html = `<div style="font-weight:700;margin-bottom:6px;color:#0f172a">${row.label}</div>`;
+            let html = `<div style="font-weight:700;margin-bottom:2px;color:#0f172a">${row.label}</div>`;
+            // Country line: only when showCountry is true AND it adds info
+            // (i.e. country isn't the same as the bar label).
+            if (showCountry && row.country && row.country !== row.label) {
+              html += `<div style="font-size:11px;color:#64748b;margin-bottom:4px">${row.country}</div>`;
+            }
             html += `<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">Total: ${row.total.toFixed(2)} Mtpa</div>`;
             const tiers = [
               { name: "Future-Ready",  pct: row.pct_future_ready,  abs: row.future_ready,  color: COLOR_FUTURE_READY },
@@ -132,27 +139,40 @@ const FutureCapacityMixBar = forwardRef<FutureCapacityMixBarHandle, Props>(
             type: "bar",
             stack: "mix",
             barMaxWidth: 56,
-            data: data.map(r => r.pct_legacy),
-            itemStyle: { color: COLOR_LEGACY },
+            data: data.map(r => ({
+              value: r.pct_legacy,
+              itemStyle: {
+                color: COLOR_LEGACY,
+                ...(r.highlighted ? { borderColor: "#E11C2A", borderWidth: 2 } : {}),
+              },
+            })),
           },
           {
             name: "Transitioning",
             type: "bar",
             stack: "mix",
             barMaxWidth: 56,
-            data: data.map(r => r.pct_transitioning),
-            itemStyle: { color: COLOR_TRANSITIONING },
+            data: data.map(r => ({
+              value: r.pct_transitioning,
+              itemStyle: {
+                color: COLOR_TRANSITIONING,
+                ...(r.highlighted ? { borderColor: "#E11C2A", borderWidth: 2 } : {}),
+              },
+            })),
           },
           {
             name: "Future-Ready",
             type: "bar",
             stack: "mix",
             barMaxWidth: 56,
-            data: data.map(r => r.pct_future_ready),
-            itemStyle: {
-              color: COLOR_FUTURE_READY,
-              borderRadius: [3, 3, 0, 0],
-            },
+            data: data.map(r => ({
+              value: r.pct_future_ready,
+              itemStyle: {
+                color: COLOR_FUTURE_READY,
+                borderRadius: [3, 3, 0, 0],
+                ...(r.highlighted ? { borderColor: "#E11C2A", borderWidth: 2 } : {}),
+              },
+            })),
           },
         ],
         // dataZoom: inside (wheel + drag) + visible slider for navigation.
@@ -185,7 +205,7 @@ const FutureCapacityMixBar = forwardRef<FutureCapacityMixBarHandle, Props>(
         animationDuration: 450,
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dataSignature]);
+    }, [data, groupBy, showCountry]);
 
     // Track whether the user is currently zoomed (controls the reset button).
     // We consider the chart "zoomed" whenever the visible window is narrower
@@ -265,8 +285,11 @@ const FutureCapacityMixBar = forwardRef<FutureCapacityMixBarHandle, Props>(
           ref={echartsRef}
           option={option}
           style={{ height }}
-          // lazyUpdate (NOT notMerge) — preserves dataZoom across re-renders
-          lazyUpdate
+          // notMerge: full replace each render so old bars/colors never persist
+          // across filter changes. Trade-off: dataZoom resets on each render,
+          // but the page-level force-remount key already resets the chart on
+          // filter changes anyway, so we lose nothing.
+          notMerge
           opts={{ renderer: "canvas" }}
         />
 

@@ -21,6 +21,15 @@ interface Props {
   data:    GreenScatterPoint[];
   height?: number;
   groupBy?: "company" | "region";
+  // When true, the tooltip subline includes the country (e.g. for the Company
+  // tab when a Region filter is active and the user has drilled into a region).
+  // When false, only the region is shown.
+  showCountry?: boolean;
+  // Override the series name shown in the legend. When set, ALL bubbles render
+  // as a single series with this name (visual color stays region-based).
+  // Use case: Company tab with a Country filter — legend should read "Germany",
+  // not "Europe", even though bubbles are colored as Europe.
+  seriesLabelOverride?: string;
 }
 
 export interface ClinkerVsTechScatterHandle {
@@ -59,7 +68,7 @@ function formatPercent(v: number, zoomScale: number): string {
 }
 
 const ClinkerVsTechScatter = forwardRef<ClinkerVsTechScatterHandle, Props>(
-  function ClinkerVsTechScatter({ data, height = 420, groupBy = "company" }, ref) {
+  function ClinkerVsTechScatter({ data, height = 420, groupBy = "company", showCountry = false, seriesLabelOverride }, ref) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const echartsRef = useRef<any>(null);
     const [isZoomed, setIsZoomed] = useState(false);
@@ -84,10 +93,14 @@ const ClinkerVsTechScatter = forwardRef<ClinkerVsTechScatterHandle, Props>(
       const maxCap = caps.length ? Math.max(...caps) : 1;
       const minCap = caps.length ? Math.min(...caps) : 0;
 
-      // Base bubble size (in pixels at 100% zoom). The actual rendered size is
-      // this multiplied by the current zoom factor — bubbles grow when zoomed
-      // in so they keep their visual prominence relative to the surrounding
-      // whitespace, like circles on a map zooming in.
+      // Dominant region — used by the legend's color swatch when an override
+      // label is in effect. Counts plain row occurrences (not capacity-weighted)
+      // because we just need the most-likely color a user will see in the chart.
+      const regionCounts: Record<string, number> = {};
+      for (const d of data) regionCounts[d.region] = (regionCounts[d.region] ?? 0) + 1;
+      const dominantRegion = Object.entries(regionCounts)
+        .sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Other";
+
       const baseSize = (cap: number) => {
         if (cap <= 0) return 8;
         if (maxCap === minCap) return 18;
@@ -95,42 +108,61 @@ const ClinkerVsTechScatter = forwardRef<ClinkerVsTechScatterHandle, Props>(
         return 10 + t * 30;
       };
 
-      const series = regions.map((region) => ({
-        name: region,
-        type: "scatter",
-        data: data
-          .filter(d => d.region === region)
-          .map(d => ({
-            value: [d.clinker_dependency, d.adoption_score, d.capacity, d.plant_count],
-            name:  d.label,
-            // baseSize stored in value[4] so the symbolSize function can read it
-            // without needing a closure over the point.
+      // Build series. Two modes:
+      //   1. Normal: one series per region; series name = region; legend lists regions.
+      //   2. Override: one combined series named seriesLabelOverride (e.g. "Germany").
+      //      Bubble colors still come from each row's region (so a Germany-only
+      //      view is uniformly Europe-blue), but the legend reads "Germany".
+      const buildPoint = (d: typeof data[number]) => {
+        const hl = d.highlighted;
+        return {
+          value: [d.clinker_dependency, d.adoption_score, d.capacity, d.plant_count],
+          name:  d.label,
+          itemStyle: {
+            color:        regionColor(d.region),
+            opacity:      hl ? 0.95 : 0.72,
+            borderColor:  hl ? "#E11C2A" : "rgba(255,255,255,0.9)",
+            borderWidth:  hl ? 2.5 : 1,
+          },
+          emphasis: {
             itemStyle: {
-              color:        regionColor(region),
-              opacity:      0.72,
-              borderColor:  "rgba(255,255,255,0.9)",
-              borderWidth:  1,
+              opacity:     0.95,
+              borderColor: hl ? "#E11C2A" : "#0f172a",
+              borderWidth: hl ? 3 : 1.6,
             },
-            emphasis: {
-              itemStyle: {
-                opacity:     0.95,
-                borderColor: "#0f172a",
-                borderWidth: 1.6,
-              },
-            },
-            _baseSize: baseSize(d.capacity),
-          })),
-        // symbolSize as a function — receives the raw value array and the params.
-        // Reads the current zoom factor from zoomScaleRef so bubbles grow on
-        // zoom-in. Capped so they don't get comically huge at extreme zoom.
-        symbolSize: (_value: number[], params: { data: { _baseSize: number } }) => {
-          const base  = params?.data?._baseSize ?? 12;
-          const scale = Math.min(zoomScaleRef.current, 4);   // cap at 4× growth
-          return base * scale;
-        },
-      }));
+          },
+          _baseSize: baseSize(d.capacity),
+          _highlighted: hl,
+          _country: d.country,
+          _region:  d.region,
+        };
+      };
+      const symbolSizeFn = (_value: number[], params: { data: { _baseSize: number; _highlighted: boolean } }) => {
+        const base  = params?.data?._baseSize ?? 12;
+        const scale = Math.min(zoomScaleRef.current, 4);
+        const hl    = params?.data?._highlighted ?? false;
+        return base * scale * (hl ? 1.5 : 1);
+      };
+
+      const series = seriesLabelOverride
+        ? [{
+            name: seriesLabelOverride,
+            type: "scatter",
+            data: data.map(buildPoint),
+            symbolSize: symbolSizeFn,
+          }]
+        : regions.map((region) => ({
+            name: region,
+            type: "scatter",
+            data: data.filter(d => d.region === region).map(buildPoint),
+            symbolSize: symbolSizeFn,
+          }));
 
       return {
+        // Empty palette forces ECharts to fully respect per-point itemStyle.color.
+        // Without this, ECharts may cycle a default palette over data points
+        // when symbolSize is a function, ignoring per-point colors entirely.
+        color: [],
         backgroundColor: "transparent",
         tooltip: {
           trigger: "item",
@@ -141,13 +173,22 @@ const ClinkerVsTechScatter = forwardRef<ClinkerVsTechScatterHandle, Props>(
           textStyle: { fontSize: 12, color: "#1e293b", fontFamily: F },
           extraCssText: "box-shadow:0 4px 16px rgba(0,0,0,0.10);border-radius:8px;",
           confine: true,
-          formatter: (p: { name: string; seriesName: string; value: number[]; color: string }) => {
+          formatter: (p: { name: string; seriesName: string; value: number[]; color: string; data: { _country?: string; _region?: string } }) => {
             const [cd, ad, cap, pc] = p.value;
+            const country = p?.data?._country || "";
+            const region  = p?.data?._region  || p.seriesName;
+            // Show country in subline only when:
+            //   • showCountry prop is true (region filter active in page), AND
+            //   • country exists and isn't the same as the bubble label
+            //     (e.g. when grouping by country, the label IS the country)
+            const subline = showCountry && country && country !== p.name
+              ? `${region} · ${country}`
+              : region;
             return `
               <div style="font-weight:700;margin-bottom:6px;color:#0f172a">${p.name}</div>
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px;color:#64748b">
                 <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color}"></span>
-                ${p.seriesName}
+                ${subline}
               </div>
               <div style="display:flex;flex-direction:column;gap:3px;font-size:11.5px">
                 <div style="display:flex;justify-content:space-between;gap:16px">
@@ -173,10 +214,18 @@ const ClinkerVsTechScatter = forwardRef<ClinkerVsTechScatterHandle, Props>(
           bottom: 0,
           itemGap: 14,
           textStyle: { fontSize: 11, color: "#475569", fontFamily: F },
-          data: regions.map(r => ({
-            name: r,
-            itemStyle: { color: regionColor(r) },
-          })),
+          data: seriesLabelOverride
+            ? [{
+                name: seriesLabelOverride,
+                // Swatch matches the bubble color: use the dominant region
+                // in the data (e.g. all bubbles will be Europe-blue when the
+                // user picked Country=Germany, so the swatch is Europe-blue too).
+                itemStyle: { color: regionColor(dominantRegion) },
+              }]
+            : regions.map(r => ({
+                name: r,
+                itemStyle: { color: regionColor(r) },
+              })),
         },
         grid: { left: 60, right: 56, top: 16, bottom: 90 },
         xAxis: {
@@ -285,7 +334,7 @@ const ClinkerVsTechScatter = forwardRef<ClinkerVsTechScatterHandle, Props>(
         animationDurationUpdate: 0,
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dataSignature]);
+    }, [data, groupBy, showCountry, seriesLabelOverride]);
 
     // Track zoom state for the reset button
     useEffect(() => {
@@ -464,7 +513,13 @@ const ClinkerVsTechScatter = forwardRef<ClinkerVsTechScatterHandle, Props>(
           ref={echartsRef}
           option={option}
           style={{ height }}
-          lazyUpdate
+          // notMerge: full replace each render. Without this, ECharts merges
+          // new options into the previous option tree, which leaves stale
+          // series and palette assignments alive after a filter change — the
+          // visible symptom is multi-colored bubbles on the initial render
+          // after picking a region filter, which "correct themselves" if the
+          // user shakes the chart by switching tabs.
+          notMerge
           opts={{ renderer: "canvas" }}
         />
 

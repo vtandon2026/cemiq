@@ -390,13 +390,17 @@ export const healthCheck = () => api.get<{ status: string }>("/health");
 // ── Green Future (ESG & Future Tech) ─────────────────────────────────────────
  
 export interface GreenFilterPayload {
-  regions?:    string[] | null;
-  countries?:  string[] | null;
-  companies?:  string[] | null;
-  statuses?:   string[] | null;
-  tech_types?: string[] | null;
-  group_by?:   "company" | "region" | null;
-  top_n?:      number;
+  regions?:             string[] | null;
+  countries?:           string[] | null;
+  companies?:           string[] | null;
+  statuses?:            string[] | null;
+  tech_types?:          string[] | null;
+  group_by?:            "company" | "region" | null;
+  top_n?:               number;
+  // Highlight params: mark rows in the response with `highlighted: true`
+  // (the backend won't filter by these).
+  highlight_countries?: string[] | null;
+  highlight_companies?: string[] | null;
 }
  
 export const getGreenMeta = () =>
