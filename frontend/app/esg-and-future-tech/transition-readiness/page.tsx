@@ -6,37 +6,37 @@ import Sidebar, { FilterLabel, FilterSelect, FilterCheckbox, FilterDivider } fro
 import ChatPanel from "@/components/chat/ChatPanel";
 import { BAIN_RED } from "@/lib/chartHelpers";
 import TransitionMatrixChart from "@/components/charts/TransitionMatrixChart";
-import TechAdoptionHeatmap   from "@/components/charts/TechAdoptionHeatmap";
-import AltFuelChart          from "@/components/charts/AltFuelChart";
-import CCUSClayChart         from "@/components/charts/CCUSClayChart";
+import TechAdoptionHeatmap from "@/components/charts/TechAdoptionHeatmap";
+import AltFuelChart from "@/components/charts/AltFuelChart";
+import CCUSClayChart from "@/components/charts/CCUSClayChart";
 import type { MatrixRow, HeatmapRow, KPIs } from "@/components/charts/transitionTypes";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const F    = "Arial, Helvetica, sans-serif";
+const F = "Arial, Helvetica, sans-serif";
 
 async function apiFetch(path: string, body?: unknown) {
   const r = await fetch(`${BASE}${path}`, {
-    method:  body !== undefined ? "POST" : "GET",
+    method: body !== undefined ? "POST" : "GET",
     headers: { "Content-Type": "application/json" },
-    body:    body !== undefined ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   return r.json();
 }
 
 export default function TransitionReadinessPage() {
-  const [allRegions,  setAllRegions]  = useState<string[]>([]);
+  const [allRegions, setAllRegions] = useState<string[]>([]);
   const [allStatuses, setAllStatuses] = useState<string[]>([]);
 
-  const [selRegions,  setSelRegions]  = useState<Set<string>>(new Set());
+  const [selRegions, setSelRegions] = useState<Set<string>>(new Set());
   const [selStatuses, setSelStatuses] = useState<Set<string>>(new Set(["operating"]));
-  const [groupBy,     setGroupBy]     = useState<"company" | "region" | "country">("company");
-  const [minCap,      setMinCap]      = useState(1);
+  const [groupBy, setGroupBy] = useState<"company" | "region" | "country">("company");
+  const [minCap, setMinCap] = useState(1);
 
-  const [matrixData,  setMatrixData]  = useState<MatrixRow[]>([]);
+  const [matrixData, setMatrixData] = useState<MatrixRow[]>([]);
   const [heatmapData, setHeatmapData] = useState<HeatmapRow[]>([]);
-  const [kpis,        setKpis]        = useState<KPIs | null>(null);
-  const [loading,     setLoading]     = useState(false);
-  const [chartCtx,    setChartCtx]    = useState<Record<string, unknown>>({});
+  const [kpis, setKpis] = useState<KPIs | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [chartCtx, setChartCtx] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
     apiFetch("/transition-readiness/meta")
@@ -47,11 +47,11 @@ export default function TransitionReadinessPage() {
   const load = useCallback(() => {
     setLoading(true);
     const statuses = selStatuses.size === allStatuses.length ? null : [...selStatuses];
-    const regions  = selRegions.size === 0 || selRegions.size === allRegions.length ? null : [...selRegions];
+    const regions = selRegions.size === 0 || selRegions.size === allRegions.length ? null : [...selRegions];
     Promise.all([
-      apiFetch("/transition-readiness/matrix",  { group_by: groupBy, statuses, regions, min_capacity: minCap }),
+      apiFetch("/transition-readiness/matrix", { group_by: groupBy, statuses, regions, min_capacity: minCap }),
       apiFetch("/transition-readiness/heatmap", { statuses }),
-      apiFetch("/transition-readiness/kpis",    { statuses, regions }),
+      apiFetch("/transition-readiness/kpis", { statuses, regions }),
     ]).then(([mat, heat, kpi]) => {
       setMatrixData(mat.data ?? []);
       setHeatmapData(heat.data ?? []);
@@ -60,7 +60,7 @@ export default function TransitionReadinessPage() {
         chart_type: "transition_readiness_matrix", group_by: groupBy,
         filters: { statuses, regions, minCap },
         top_leaders: (mat.data ?? []).filter((r: MatrixRow) => r.readiness_score > 50 && r.carbon_exposure < 50).slice(0, 5).map((r: MatrixRow) => r.name),
-        top_risk:    (mat.data ?? []).filter((r: MatrixRow) => r.readiness_score < 50 && r.carbon_exposure > 50).slice(0, 5).map((r: MatrixRow) => r.name),
+        top_risk: (mat.data ?? []).filter((r: MatrixRow) => r.readiness_score < 50 && r.carbon_exposure > 50).slice(0, 5).map((r: MatrixRow) => r.name),
         kpis: kpi,
       });
     }).finally(() => setLoading(false));
@@ -69,10 +69,10 @@ export default function TransitionReadinessPage() {
   useEffect(() => { if (allStatuses.length) load(); }, [load, allStatuses]);
 
   const kpiCards = kpis ? [
-    { label: "Future Readiness Score", value: `${kpis.future_readiness_score.toFixed(0)} / 100`, sub: "Composite: dry, alt fuel, CCUS, clay, age",   color: "#059669" },
-    { label: "Alt Fuel Capacity",      value: `${kpis.alt_fuel_pct.toFixed(1)}%`,                sub: "% of capacity using alternative fuels",        color: "#d97706" },
-    { label: "CCUS-Enabled Capacity",  value: `${kpis.ccus_pct.toFixed(1)}%`,                    sub: "% of capacity with carbon capture capability", color: "#7c3aed" },
-    { label: "Future-Ready Capacity",  value: `${kpis.future_ready_cap.toFixed(0)} Mt`,           sub: "Dry + alt fuel + CCUS or clay calcination",    color: "#2563eb" },
+    { label: "Future Readiness Score", value: `${kpis.future_readiness_score.toFixed(0)} / 100`, sub: "Composite: dry, alt fuel, CCUS, clay, age", color: "#059669" },
+    { label: "Alt Fuel Capacity", value: `${kpis.alt_fuel_pct.toFixed(1)}%`, sub: "% of capacity using alternative fuels", color: "#d97706" },
+    { label: "CCUS-Enabled Capacity", value: `${kpis.ccus_pct.toFixed(1)}%`, sub: "% of capacity with carbon capture capability", color: "#7c3aed" },
+    { label: "Future-Ready Capacity", value: `${kpis.future_ready_cap.toFixed(0)} Mt`, sub: "Dry + alt fuel + CCUS or clay calcination", color: "#2563eb" },
   ] : [];
 
   return (
@@ -133,6 +133,25 @@ export default function TransitionReadinessPage() {
                 </div>
               ))}
             </div>
+            {/* Executive Insight */}
+            {kpis && (
+              <div style={{ background: "linear-gradient(135deg,#0f172a,#1e3a5f)", borderRadius: 10, padding: "16px 20px", marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#f87171", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Executive Insight</div>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", lineHeight: 1.7, margin: 0 }}>
+                  Of the <strong style={{ color: "#fff" }}>{kpis.total_capacity.toFixed(0)} Mtpa</strong> of cement capacity analysed,{" "}
+                  <strong style={{ color: "#fff" }}>{kpis.future_ready_cap.toFixed(0)} Mtpa</strong> meets the future-ready threshold — plants that are dry-process, use alternative fuels, and have CCUS or clay calcination capability.
+                  {" "}Alternative fuel adoption stands at <strong style={{ color: "#fff" }}>{kpis.alt_fuel_pct.toFixed(1)}%</strong> of capacity
+                  {kpis.alt_fuel_pct < 15 ? ", representing a significant untapped near-term decarbonization lever" : ", reflecting meaningful progress in fuel switching"}.
+                  {" "}CCUS-enabled capacity reaches <strong style={{ color: "#fff" }}>{kpis.ccus_pct.toFixed(1)}%</strong>
+                  {kpis.ccus_pct < 5 ? " — nascent but critical for long-term deep decarbonization" : " — gaining traction among leading producers"}.
+                  {" "}The overall future readiness score is <strong style={{ color: "#fff" }}>{kpis.future_readiness_score.toFixed(0)} / 100</strong>
+                  {kpis.future_readiness_score < 30 ? ", indicating the industry remains in early stages of transition." : kpis.future_readiness_score < 60 ? ", reflecting a sector in active but uneven transition." : ", suggesting meaningful progress toward low-carbon production."}
+                </p>
+                <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", lineHeight: 1.6, margin: "10px 0 0" }}>
+                  Methodology · Future Readiness Score = 30% dry-process share + 30% alt fuel adoption + 20% CCUS + 10% clay calcination + 10% newer asset base, normalised 0–100. Future-Ready capacity requires dry-process + alt fuel + (CCUS or clay calcination).
+                </p>
+              </div>
+            )}
 
             {/* Hero Matrix */}
             <div style={{ background: "#fff", border: "1px solid #e9ecef", borderRadius: 10, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)", marginBottom: 14 }}>
@@ -168,18 +187,6 @@ export default function TransitionReadinessPage() {
               <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 12 }}>Top 15 by combined long-term decarbonization capability</div>
               <CCUSClayChart data={matrixData} height={300} />
             </div>
-
-            {/* Executive Insight */}
-            <div style={{ background: "linear-gradient(135deg,#0f172a,#1e3a5f)", borderRadius: 10, padding: "16px 20px", marginBottom: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#f87171", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Executive Insight</div>
-              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", lineHeight: 1.7, margin: 0 }}>
-                Transition readiness remains uneven across the industry.
-                {kpis && kpis.alt_fuel_pct < 20 ? " Alternative fuel adoption remains limited globally, representing a significant near-term decarbonization opportunity." : " Leading producers are accelerating modernization through fuel switching and carbon capture investments."}
-                {kpis && kpis.ccus_pct < 5 ? " CCUS-enabled capacity is nascent — long-term transition will require significant capital deployment." : " CCUS deployment is gaining traction among leading producers."}
-                {" "}Significant clinker-intensive infrastructure remains across emerging markets, elevating transition pressure in those regions.
-              </p>
-            </div>
-
           </div>
 
           <div style={{ width: 288, flexShrink: 0 }}>
