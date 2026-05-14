@@ -298,7 +298,9 @@ def get_hero_chart(
 ) -> dict:
     """
     Wet vs Dry capacity stacked bar.
-    Excludes 'unknown' production type rows (per spec).
+    Excludes plants with unknown production type — chart stacks are limited to
+    Dry / Mixed / Wet. Rows whose ONLY capacity is in the unknown bucket will
+    naturally drop out (their total becomes 0 → filtered by `total > 0`).
 
     X-axis logic:
       - If `axis == "plant"`              → x-axis = plants (across whatever filter is in scope)
@@ -310,10 +312,11 @@ def get_hero_chart(
     sub = _apply_filters(df, countries=countries, company=company,
                          companies=companies, plant_type=plant_type, statuses=statuses)
 
-    # Keep ALL rows (including unknown production type) — unknown becomes its own
-    # stack category in the chart so users can see total capacity correctly.
-    # Only the percent-based KPIs (% Wet) exclude unknowns; that logic lives in
-    # get_kpis() and is unaffected by this change.
+    # Exclude rows with unknown production type. This makes the chart show only
+    # meaningful Dry/Mixed/Wet contributions; companies/plants that are entirely
+    # unknown will drop out via the downstream `total > 0` filter.
+    # Note: KPI percentages (% Wet) already exclude unknowns separately.
+    sub = sub[sub["_prod_norm"].isin(["dry", "wet", "mixed"])]
 
     if sub.empty:
         return {"data": [], "x_axis_type": axis or "company", "unit": "Mtpa"}
@@ -444,9 +447,15 @@ def get_integrated_grinding(
     statuses: Optional[list[str]] = None,
 ) -> dict:
     """
-    Integrated vs Grinding capacity breakdown.
+    Integrated vs Grinding vs Clinker-only capacity breakdown.
+
     Includes all plants regardless of production type — this chart is about
-    plant_type (integrated vs grinding), not production type.
+    plant_type (integrated / grinding / clinker-only), not production type.
+
+    Capacity reported per plant:
+      - Integrated / Grinding → Cement Capacity (their final saleable product)
+      - Clinker only          → Clinker Capacity (clinker IS their final product;
+                                their Cement Capacity is typically 0 or null)
     """
     df = get_carbon_df()
     sub = _apply_filters(df, countries=countries, company=company,
@@ -455,16 +464,24 @@ def get_integrated_grinding(
     if sub.empty:
         return {"data": [], "unit": "Mtpa"}
 
-    # Group by plant_type column
+    # Effective output capacity per plant:
+    #   - Integrated / Grinding plants → cement_capacity (their final product)
+    #   - Clinker only plants          → clinker_capacity (they don't make cement,
+    #                                    so their cement_capacity is 0/null)
+    # Using the max of the two correctly handles all three categories.
+    sub = sub.copy()
+    sub["_chart_cap"] = sub[[COL_CEMENT_CAP, COL_CLINKER_CAP]].fillna(0).max(axis=1)
+
+    # Group by plant_type column using the effective capacity
     grp = (
-        sub.groupby(sub[COL_PLANT_TYPE].astype(str).str.strip().str.lower())[COL_CEMENT_CAP]
+        sub.groupby(sub[COL_PLANT_TYPE].astype(str).str.strip().str.lower())["_chart_cap"]
         .sum()
         .reset_index()
-        .rename(columns={COL_PLANT_TYPE: "plant_type", COL_CEMENT_CAP: "capacity"})
+        .rename(columns={COL_PLANT_TYPE: "plant_type", "_chart_cap": "capacity"})
     )
     grp = grp[grp["capacity"] > 0].sort_values("capacity", ascending=False)
 
-    # Filter out unknown plant types from the chart
+    # Filter out only truly-unknown plant types (preserve "clinker only", "integrated", "grinding")
     grp = grp[~grp["plant_type"].isin(list(_PROD_UNKNOWN))]
 
     return {

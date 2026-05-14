@@ -72,6 +72,11 @@ const NAV_ITEMS = [
         href: "/esg-and-future-tech/the-carbon-problem",
         desc: "Wet vs dry capacity, plant footprint & transition risk",
       },
+      {
+        label: "The Future of Green Cement",
+        href: "/esg-and-future-tech/future-of-green-cement",
+        desc: "CCUS, clay calcination & clinker reduction — next-gen pathways",
+      },
     ],
   },
 ];

@@ -8,6 +8,8 @@ import type {
   KpiPointRow, KpiTimeSeriesRow, ChatMessage,
   CarbonMeta, CarbonKpis, CarbonHeroData, CarbonMapData,
   CarbonIntegratedGrindingData, CarbonPlantAgeData,
+  GreenMeta, GreenKpis, GreenMapData, GreenScatterData,
+  GreenCapacityMixData, GreenHeatmapData,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -299,6 +301,19 @@ export const exportPptx = (payload: {
 export const listTemplates = () =>
   api.get<Record<string, { exists: boolean; path: string }>>("/export/templates");
 
+export interface PptDeckSlide {
+  template: string;                              // existing TEMPLATE_MAP key
+  data:     { name: string; table: unknown[][] }[];
+}
+ 
+export interface PptDeckPayload {
+  slides:   PptDeckSlide[];
+  filename: string;
+}
+ 
+export const exportPptxDeck = (payload: PptDeckPayload) =>
+  api.post("/export/pptx-deck", payload, { responseType: "blob" });
+
 // ── Carbon Problem (ESG & Future Tech) ────────────────────────────────────────
  
 export interface CarbonFilterPayload {
@@ -371,3 +386,56 @@ export const buildDeck = (payload: {
 
 // ── Health ────────────────────────────────────────────────────────────────────
 export const healthCheck = () => api.get<{ status: string }>("/health");
+
+// ── Green Future (ESG & Future Tech) ─────────────────────────────────────────
+ 
+export interface GreenFilterPayload {
+  regions?:    string[] | null;
+  countries?:  string[] | null;
+  companies?:  string[] | null;
+  statuses?:   string[] | null;
+  tech_types?: string[] | null;
+  group_by?:   "company" | "region" | null;
+  top_n?:      number;
+}
+ 
+export const getGreenMeta = () =>
+  cachedGet<GreenMeta>("/green-future/meta");
+ 
+const _greenCompaniesCache = new Map<string, { data: { companies: string[] }; ts: number }>();
+const GREEN_COMPANIES_TTL = 5 * 60 * 1000;
+ 
+export const getGreenCompanies = (
+  regions?: string[] | null,
+  countries?: string[] | null,
+) => {
+  const key = JSON.stringify({ r: regions ?? [], c: countries ?? [] });
+  const cached = _greenCompaniesCache.get(key);
+  if (cached && Date.now() - cached.ts < GREEN_COMPANIES_TTL) {
+    return Promise.resolve({ data: cached.data });
+  }
+  const params: Record<string, string> = {};
+  if (regions   && regions.length)   params.regions   = regions.join(",");
+  if (countries && countries.length) params.countries = countries.join(",");
+  return api.get<{ companies: string[] }>("/green-future/companies", {
+    params: Object.keys(params).length ? params : undefined,
+  }).then((res) => {
+    _greenCompaniesCache.set(key, { data: res.data, ts: Date.now() });
+    return res;
+  });
+};
+ 
+export const getGreenKpis = (payload: GreenFilterPayload) =>
+  api.post<GreenKpis>("/green-future/kpis", payload);
+ 
+export const getGreenMap = (payload: GreenFilterPayload) =>
+  api.post<GreenMapData>("/green-future/map", payload);
+ 
+export const getGreenScatter = (payload: GreenFilterPayload) =>
+  api.post<GreenScatterData>("/green-future/scatter", payload);
+ 
+export const getGreenCapacityMix = (payload: GreenFilterPayload) =>
+  api.post<GreenCapacityMixData>("/green-future/capacity-mix", payload);
+ 
+export const getGreenHeatmap = (payload: GreenFilterPayload) =>
+  api.post<GreenHeatmapData>("/green-future/heatmap", payload);

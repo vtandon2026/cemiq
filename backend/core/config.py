@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     THINKCELL_TEMPLATE_MEKKO_RMS: Path = Path("./data/templates/thinkcell_template_mekko_rms.pptx")
     THINKCELL_TEMPLATE_MA: Path = Path("./data/templates/thinkcell_template_MA.pptx")
     THINKCELL_TEMPLATE_TRADE: Path = Path("./data/templates/thinkcell_template_growth_newwww.pptx")
+    THINKCELL_TEMPLATE_CARBON_PLANT_AGE: Path = Path("./data/templates/thinkcell_template_growth_ESG_plant_age_distribution.pptx")
 
     # ── Think-cell element names ───────────────────────────────────────────────
     TC_ELEM_MEKKO: str = "MekkoChart"
