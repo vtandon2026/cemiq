@@ -254,3 +254,103 @@ export interface CarbonPlantAgeData {
   reference_year: number;
   unit:           string;
 }
+
+// ── Green Future (ESG & Future Tech) ─────────────────────────────────────────
+export interface GreenTechOption {
+  value: "ccus" | "clay" | "alt_fuel" | "low_clinker";
+  label: string;
+}
+ 
+export interface GreenMeta {
+  regions:           string[];
+  countries:         string[];
+  companies:         string[];
+  statuses:          string[];
+  tech_types:        GreenTechOption[];
+  country_to_region: Record<string, string>;
+  company_to_region: Record<string, string>;
+}
+ 
+export interface GreenKpis {
+  pct_ccus:         number | null;
+  pct_clay:         number | null;
+  pct_low_clinker:  number | null;
+  future_ready_cap: number;       // absolute Mtpa
+  total_cap:        number;
+  plant_count:      number;
+}
+ 
+export type GreenTechTag = "ccus" | "clay" | "alt_fuel";
+ 
+export interface GreenMapPoint {
+  plant_name:        string;
+  company:           string;
+  country:           string;
+  lat:               number;
+  lon:               number;
+  cement_capacity:   number | null;
+  clinker_capacity:  number | null;
+  size_cap:          number;     // capacity used for bubble sizing
+  tech_tag:          GreenTechTag;
+  ccus:              boolean;
+  clay:              boolean;
+  alt_fuel:          boolean;
+  highlighted:       boolean;
+}
+ 
+export interface GreenMapData {
+  data:  GreenMapPoint[];
+  count: number;
+}
+ 
+export interface GreenScatterPoint {
+  label:               string;
+  clinker_dependency:  number;
+  adoption_score:      number;
+  capacity:            number;
+  region:              string;
+  country:             string;
+  plant_count:         number;
+  highlighted:         boolean;
+}
+ 
+export interface GreenScatterData {
+  data:     GreenScatterPoint[];
+  group_by: "company" | "region";
+}
+ 
+export interface GreenCapacityMixRow {
+  label:             string;
+  country:           string;
+  legacy:            number;
+  transitioning:     number;
+  future_ready:      number;
+  total:             number;
+  pct_legacy:        number;
+  pct_transitioning: number;
+  pct_future_ready:  number;
+  highlighted:       boolean;
+}
+ 
+export interface GreenCapacityMixData {
+  data:     GreenCapacityMixRow[];
+  group_by: "company" | "region";
+  unit:     string;
+}
+ 
+export interface GreenHeatmapCell {
+  tech:        GreenTechTag;
+  tech_label:  string;
+  region:      string;
+  value:       number | null;
+  cap:         number;
+  highlighted: boolean;
+}
+ 
+export interface GreenHeatmapData {
+  data:             GreenHeatmapCell[];
+  regions:          string[];
+  techs:            { value: GreenTechTag; label: string }[];
+  unit:             string;
+  highlighted_cols: string[];
+}

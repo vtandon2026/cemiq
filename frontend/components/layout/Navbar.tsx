@@ -77,6 +77,11 @@ const NAV_ITEMS = [
         href: "/esg-and-future-tech/transition-readiness",
         desc: "How the industry is responding to the low-carbon transition"
       },
+      {
+        label: "The Future of Green Cement",
+        href: "/esg-and-future-tech/future-of-green-cement",
+        desc: "CCUS, clay calcination & clinker reduction — next-gen pathways",
+      },
     ],
   },
 ];

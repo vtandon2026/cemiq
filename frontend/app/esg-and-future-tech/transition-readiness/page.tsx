@@ -6,7 +6,7 @@ import Sidebar, { FilterLabel, FilterSelect, FilterCheckbox, FilterDivider } fro
 import ChatPanel from "@/components/chat/ChatPanel";
 import { BAIN_RED } from "@/lib/chartHelpers";
 import TransitionMatrixChart from "@/components/charts/TransitionMatrixChart";
-import TechAdoptionHeatmap from "@/components/charts/TechAdoptionHeatmap";
+import TechAdoptionHeatmap from "@/components/charts/AdoptionHeatmap";
 import AltFuelChart from "@/components/charts/AltFuelChart";
 import CCUSClayChart from "@/components/charts/CCUSClayChart";
 import type { MatrixRow, HeatmapRow, KPIs } from "@/components/charts/transitionTypes";

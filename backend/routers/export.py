@@ -56,6 +56,7 @@ TEMPLATE_MAP: Dict[str, Path] = {
     "mekko_rms": settings.THINKCELL_TEMPLATE_MEKKO_RMS,
     "ma":        settings.THINKCELL_TEMPLATE_MA,
     "trade":       settings.THINKCELL_TEMPLATE_TRADE,
+    "carbon_plant_age": settings.THINKCELL_TEMPLATE_CARBON_PLANT_AGE,
 }
 
 
@@ -137,3 +138,60 @@ def list_templates():
         key: {"exists": path.exists(), "path": str(path)}
         for key, path in TEMPLATE_MAP.items()
     }
+
+
+# ── Multi-slide deck endpoint ─────────────────────────────────────────────────
+# think-cell Server accepts an array of {template, data} entries and stitches
+# them into a single multi-slide deck. This is what we use for "Export All to
+# Deck" buttons — when a page wants to ship N charts at once.
+
+class TcDeckSlide(BaseModel):
+    template: str                       # template KEY (e.g. "bar", "trade")
+    data:     List[TcDataItem]          # named-range fills for this slide
+
+
+class TcDeckRequest(BaseModel):
+    slides:   List[TcDeckSlide]
+    filename: Optional[str] = "deck.pptx"
+
+
+@router.post("/pptx-deck")
+def export_pptx_deck(req: TcDeckRequest):
+    """
+    Build a multi-slide PPTX from a list of (template, data) pairs.
+    Each slide is built from a separate template; think-cell stitches them
+    into one deck in the order they appear in `slides`.
+    """
+    if not req.slides:
+        raise HTTPException(status_code=400, detail="At least one slide is required.")
+
+    # Resolve every template up-front so a bad key fails fast
+    envelopes: List[Dict[str, Any]] = []
+    for i, slide in enumerate(req.slides):
+        try:
+            template_url = _resolve_template(slide.template)
+        except (ValueError, FileNotFoundError) as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Slide {i + 1}: {e}",
+            )
+        envelopes.append({
+            "template": template_url,
+            "data": [{"name": item.name, "table": item.table} for item in slide.data],
+        })
+
+    ppttc = json.dumps(envelopes, ensure_ascii=False, default=lambda x: x if x is not None else None)
+
+    try:
+        pptx_bytes = _post_to_tc(ppttc)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"think-cell Server error: {e}")
+
+    filename = (req.filename or "deck.pptx").replace(" ", "_")
+
+    import io
+    return StreamingResponse(
+        io.BytesIO(pptx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

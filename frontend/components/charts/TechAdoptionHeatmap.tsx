@@ -1,28 +1,28 @@
 "use client";
 // PATH: frontend/components/charts/TechAdoptionHeatmap.tsx
 import { F, type HeatmapRow } from "./transitionTypes";
-
+ 
 interface Props {
   data: HeatmapRow[];
 }
-
+ 
 const REGIONS = ["Europe", "North America", "China", "APAC", "MEA", "Latin America"];
 const TECH_LABELS: Record<string, string> = {
   "alt_fuel": "Alternative Fuel",
   "ccus":     "CCUS",
   "clay":     "Clay Calcination",
 };
-
+ 
 function getColor(val: number): string {
   if (val >= 50) return "#15803d";
   if (val >= 20) return "#4ade80";
   if (val >= 5)  return "#fef08a";
   return "#f1f5f9";
 }
-
+ 
 export default function TechAdoptionHeatmap({ data }: Props) {
   if (!data.length) return <div style={{ color: "#94a3b8", fontSize: 13, padding: 16 }}>No data</div>;
-
+ 
   return (
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 3, fontSize: 12, fontFamily: F }}>
