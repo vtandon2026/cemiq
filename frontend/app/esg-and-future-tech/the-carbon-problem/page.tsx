@@ -489,21 +489,21 @@ export default function CarbonProblemPage() {
           value: fmtNum(kpis?.total_clinker_capacity, 1),
           suffix: "Mtpa",
           sub: countryScopeLabel,
-          color: "#2563eb",
+          color: "#E11C2A",
         },
         {
           label: "Wet Process Capacity",
           value: fmtNum(kpis?.pct_wet_capacity, 1),
           suffix: "%",
           sub: "Higher = elevated transition risk",
-          color: (kpis?.pct_wet_capacity ?? 0) > 20 ? "#E11C2A" : "#d97706",
+          color: (kpis?.pct_wet_capacity ?? 0) > 20 ? "#E11C2A" : "#0f172a",
         },
         {
           label: "Alt Fuel Adoption",
           value: fmtNum(kpis?.pct_alt_fuel, 1),
           suffix: "%",
           sub: "% of plants using alternative fuels",
-          color: "#059669",
+          color: "#0f172a",
         },
       ].map(k => (
         <div key={k.label} style={{ background: "#fff", border: "1px solid #e9ecef", borderRadius: 10, padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>

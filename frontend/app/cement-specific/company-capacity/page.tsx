@@ -262,9 +262,9 @@ export default function CompanyCapacityPage() {
             {/* KPI strip */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
               {[
-                { label: "Companies Shown", value: String(chartData.length),   sub: `Top ${topN} by cement capacity`,              color: "#E11C2A" },
-                { label: "Total Capacity",  value: `${totalCap.toFixed(0)} Mt`, sub: "Combined capacity of shown companies",        color: "#2563eb" },
-                { label: "Top 3 Share",     value: `${top3Share.toFixed(1)}%`,  sub: "% of total held by top 3 producers",         color: "#059669" },
+                { label: "Companies Shown", value: String(chartData.length),   sub: `Top ${topN} by cement capacity`,              color: "#0f172a" },
+                { label: "Total Capacity",  value: `${totalCap.toFixed(0)} Mt`, sub: "Combined capacity of shown companies",        color: "#E11C2A" },
+                { label: "Top 3 Share",     value: `${top3Share.toFixed(1)}%`,  sub: "% of total held by top 3 producers",         color: "#E11C2A" },
               ].map(k => (
                 <div key={k.label} style={{ background: "#fff", border: "1px solid #e9ecef", borderRadius: 10, padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
                   <div style={{ fontSize: 20, fontWeight: 800, color: k.color, marginBottom: 4 }}>{k.value}</div>

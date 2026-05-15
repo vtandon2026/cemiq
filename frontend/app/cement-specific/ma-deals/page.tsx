@@ -285,8 +285,8 @@ export default function MaDealsPage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
               {[
                 { label: "Total Deals", value: totalDeals.toLocaleString(), sub: `Cement M&A deals · ${yearMin}–${yearMax}`, color: "#E11C2A" },
-                { label: "Total Value", value: `$${totalValue.toFixed(1)}B`, sub: "Cumulative deal value in selected period", color: "#2563eb" },
-                { label: "Year Range", value: `${yearMin} – ${yearMax}`, sub: "Active filter range", color: "#059669" },
+                { label: "Total Value", value: `$${totalValue.toFixed(1)}B`, sub: "Cumulative deal value in selected period", color: "#E11C2A" },
+                { label: "Year Range", value: `${yearMin} – ${yearMax}`, sub: "Active filter range", color: "#0f172a" },
               ].map(k => (
                 <div key={k.label} style={{ background: "#fff", border: "1px solid #e9ecef", borderRadius: 10, padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
                   <div style={{ fontSize: 20, fontWeight: 800, color: k.color, marginBottom: 4 }}>{k.value}</div>

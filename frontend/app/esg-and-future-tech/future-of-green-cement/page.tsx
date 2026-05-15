@@ -379,10 +379,10 @@ export default function FutureOfGreenCementPage() {
   const kpiStrip = (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
       {[
-        { label: "CCUS-Enabled Capacity", value: fmtNum(kpis?.pct_ccus, 1), suffix: "%", sub: "Plants flagged for CCS/CCUS · share of total capacity", color: "#7c3aed" },
-        { label: "Clay Calcination Capacity", value: fmtNum(kpis?.pct_clay, 1), suffix: "%", sub: "Clay-calcination-enabled plants · share of total capacity", color: "#0891b2" },
-        { label: "Low-Clinker Capacity", value: fmtNum(kpis?.pct_low_clinker, 1), suffix: "%", sub: "Plants with clinker/cement ratio ≤ 0.85 · share of total", color: "#d97706" },
-        { label: "Future-Ready Capacity", value: fmtNum(kpis?.future_ready_cap, 1), suffix: "Mtpa", sub: "Plants with CCUS, clay calcination, or low clinker dependency", color: "#059669" },
+        { label: "CCUS-Enabled Capacity", value: fmtNum(kpis?.pct_ccus, 1), suffix: "%", sub: "Plants flagged for CCS/CCUS · share of total capacity", color: "#E11C2A" },
+        { label: "Clay Calcination Capacity", value: fmtNum(kpis?.pct_clay, 1), suffix: "%", sub: "Clay-calcination-enabled plants · share of total capacity", color: "#E11C2A" },
+        { label: "Low-Clinker Capacity", value: fmtNum(kpis?.pct_low_clinker, 1), suffix: "%", sub: "Plants with clinker/cement ratio ≤ 0.85 · share of total", color: "#E11C2A" },
+        { label: "Future-Ready Capacity", value: fmtNum(kpis?.future_ready_cap, 1), suffix: "Mtpa", sub: "Plants with CCUS, clay calcination, or low clinker dependency", color: "#0f172a" },
       ].map(k => (
         <div key={k.label} style={{ background: "#fff", border: "1px solid #e9ecef", borderRadius: 10, padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
           <div style={{ fontSize: 20, fontWeight: 800, color: k.color, marginBottom: 4 }}>

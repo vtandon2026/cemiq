@@ -48,20 +48,50 @@ export default function TransitionReadinessPage() {
     setLoading(true);
     const statuses = selStatuses.size === allStatuses.length ? null : [...selStatuses];
     const regions = selRegions.size === 0 || selRegions.size === allRegions.length ? null : [...selRegions];
-    Promise.all([
-      apiFetch("/transition-readiness/matrix", { group_by: groupBy, statuses, regions, min_capacity: minCap }),
-      apiFetch("/transition-readiness/heatmap", { statuses }),
-      apiFetch("/transition-readiness/kpis", { statuses, regions }),
-    ]).then(([mat, heat, kpi]) => {
-      setMatrixData(mat.data ?? []);
-      setHeatmapData(heat.data ?? []);
+    apiFetch("/transition-readiness/all", {
+      group_by: groupBy, statuses, regions, min_capacity: minCap,
+    }).then((res) => {
+      const kpi = res.kpis ?? {};
+      setMatrixData(res.matrix ?? []);
+      setHeatmapData(res.heatmap ?? []);
       setKpis(kpi);
+      const allRows = res.matrix ?? [];
+      const resilientLeaders = allRows.filter((r: MatrixRow) => r.readiness_score > 50 && r.carbon_exposure < 50);
+      const transformingGiants = allRows.filter((r: MatrixRow) => r.readiness_score > 50 && r.carbon_exposure >= 50);
+      const stableButLagging = allRows.filter((r: MatrixRow) => r.readiness_score <= 50 && r.carbon_exposure < 50);
+      const transitionRisk = allRows.filter((r: MatrixRow) => r.readiness_score <= 50 && r.carbon_exposure >= 50);
+
       setChartCtx({
-        chart_type: "transition_readiness_matrix", group_by: groupBy,
+        chart_type: "transition_readiness_matrix",
+        description: "Bubble scatter plot — X axis = Carbon Exposure (0-100), Y axis = Future Readiness (0-100), bubble size = total capacity. Four quadrants: Resilient Leaders (low exposure, high readiness), Transforming Giants (high exposure, high readiness), Stable but Lagging (low exposure, low readiness), Transition Risk (high exposure, low readiness).",
+        methodology: "Carbon Exposure = 40% wet capacity share + 30% integrated share + 20% non-dry share + 10% old plant share. Future Readiness = 30% dry share + 30% alt fuel + 20% CCUS + 10% clay calcination + 10% new plants. Both normalised 0-100.",
+        group_by: groupBy,
         filters: { statuses, regions, minCap },
-        top_leaders: (mat.data ?? []).filter((r: MatrixRow) => r.readiness_score > 50 && r.carbon_exposure < 50).slice(0, 5).map((r: MatrixRow) => r.name),
-        top_risk: (mat.data ?? []).filter((r: MatrixRow) => r.readiness_score < 50 && r.carbon_exposure > 50).slice(0, 5).map((r: MatrixRow) => r.name),
         kpis: kpi,
+        quadrants: {
+          resilient_leaders: { count: resilientLeaders.length, top5: resilientLeaders.slice(0, 5).map((r: MatrixRow) => ({ name: r.name, readiness: r.readiness_score, exposure: r.carbon_exposure, capacity: r.total_capacity })) },
+          transforming_giants: { count: transformingGiants.length, top5: transformingGiants.slice(0, 5).map((r: MatrixRow) => ({ name: r.name, readiness: r.readiness_score, exposure: r.carbon_exposure, capacity: r.total_capacity })) },
+          stable_but_lagging: { count: stableButLagging.length, top5: stableButLagging.slice(0, 5).map((r: MatrixRow) => ({ name: r.name, readiness: r.readiness_score, exposure: r.carbon_exposure, capacity: r.total_capacity })) },
+          transition_risk: { count: transitionRisk.length, top5: transitionRisk.slice(0, 5).map((r: MatrixRow) => ({ name: r.name, readiness: r.readiness_score, exposure: r.carbon_exposure, capacity: r.total_capacity })) },
+        },
+        top_alt_fuel: [...allRows].sort((a: MatrixRow, b: MatrixRow) => b.alt_fuel_pct - a.alt_fuel_pct).slice(0, 5).map((r: MatrixRow) => ({ name: r.name, alt_fuel_pct: r.alt_fuel_pct })),
+        top_ccus: [...allRows].sort((a: MatrixRow, b: MatrixRow) => b.ccus_pct - a.ccus_pct).slice(0, 5).map((r: MatrixRow) => ({ name: r.name, ccus_pct: r.ccus_pct })),
+        total_entities: allRows.length,
+        all_entities: [...allRows].sort((a: MatrixRow, b: MatrixRow) => b.total_capacity - a.total_capacity).slice(0, 50).map((r: MatrixRow) => ({
+          name: r.name,
+          region: r.region,
+          capacity_mt: r.total_capacity,
+          carbon_exposure: r.carbon_exposure,
+          readiness_score: r.readiness_score,
+          wet_pct: r.wet_share,
+          dry_pct: r.dry_share,
+          alt_fuel_pct: r.alt_fuel_pct,
+          ccus_pct: r.ccus_pct,
+          clay_pct: r.clay_pct,
+          integrated_pct: r.integrated_share,
+          new_plant_pct: r.new_plant_pct,
+          future_ready_cap: r.future_ready_cap,
+        })),
       });
     }).finally(() => setLoading(false));
   }, [allStatuses, allRegions, selStatuses, selRegions, groupBy, minCap]);
@@ -69,10 +99,10 @@ export default function TransitionReadinessPage() {
   useEffect(() => { if (allStatuses.length) load(); }, [load, allStatuses]);
 
   const kpiCards = kpis ? [
-    { label: "Future Readiness Score", value: `${kpis.future_readiness_score.toFixed(0)} / 100`, sub: "Composite: dry, alt fuel, CCUS, clay, age", color: "#059669" },
-    { label: "Alt Fuel Capacity", value: `${kpis.alt_fuel_pct.toFixed(1)}%`, sub: "% of capacity using alternative fuels", color: "#d97706" },
-    { label: "CCUS-Enabled Capacity", value: `${kpis.ccus_pct.toFixed(1)}%`, sub: "% of capacity with carbon capture capability", color: "#7c3aed" },
-    { label: "Future-Ready Capacity", value: `${kpis.future_ready_cap.toFixed(0)} Mt`, sub: "Dry + alt fuel + CCUS or clay calcination", color: "#2563eb" },
+    { label: "Future Readiness Score", value: `${kpis.future_readiness_score.toFixed(0)} / 100`, sub: "Composite: dry, alt fuel, CCUS, clay, age", color: "#0f172a" },
+    { label: "Alt Fuel Capacity", value: `${kpis.alt_fuel_pct.toFixed(1)}%`, sub: "% of capacity using alternative fuels", color: "#E11C2A" },
+    { label: "CCUS-Enabled Capacity", value: `${kpis.ccus_pct.toFixed(1)}%`, sub: "% of capacity with carbon capture capability", color: "#E11C2A" },
+    { label: "Future-Ready Capacity", value: `${kpis.future_ready_cap.toFixed(0)} Mt`, sub: "Dry + alt fuel + CCUS or clay calcination", color: "#E11C2A" },
   ] : [];
 
   return (
@@ -135,21 +165,38 @@ export default function TransitionReadinessPage() {
             </div>
             {/* Executive Insight */}
             {kpis && (
-              <div style={{ background: "linear-gradient(135deg,#0f172a,#1e3a5f)", borderRadius: 10, padding: "16px 20px", marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#f87171", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Executive Insight</div>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", lineHeight: 1.7, margin: 0 }}>
-                  Of the <strong style={{ color: "#fff" }}>{kpis.total_capacity.toFixed(0)} Mtpa</strong> of cement capacity analysed,{" "}
-                  <strong style={{ color: "#fff" }}>{kpis.future_ready_cap.toFixed(0)} Mtpa</strong> meets the future-ready threshold — plants that are dry-process, use alternative fuels, and have CCUS or clay calcination capability.
-                  {" "}Alternative fuel adoption stands at <strong style={{ color: "#fff" }}>{kpis.alt_fuel_pct.toFixed(1)}%</strong> of capacity
+              <div style={{
+                background: "linear-gradient(135deg, #E11C2A 0%, #8B0E18 100%)",
+                color: "#fff", border: "1px solid #8B0E18",
+                borderRadius: 10, padding: "16px 20px", marginBottom: 16,
+                fontFamily: F, fontSize: 12.5, lineHeight: 1.55,
+                boxShadow: "0 2px 8px rgba(225,28,42,0.20)",
+              }}>
+                <div style={{
+                  fontSize: 11, color: "rgba(255,255,255,0.85)",
+                  fontWeight: 700, letterSpacing: "0.06em", marginBottom: 6,
+                }}>
+                  EXECUTIVE INSIGHT
+                </div>
+                <div style={{ color: "#fff" }}>
+                  Of the <strong>{kpis.total_capacity.toFixed(0)} Mtpa</strong> of cement capacity analysed,{" "}
+                  <strong>{kpis.future_ready_cap.toFixed(0)} Mtpa</strong> meets the future-ready threshold — plants that are dry-process, use alternative fuels, and have CCUS or clay calcination capability.
+                  {" "}Alternative fuel adoption stands at <strong>{kpis.alt_fuel_pct.toFixed(1)}%</strong> of capacity
                   {kpis.alt_fuel_pct < 15 ? ", representing a significant untapped near-term decarbonization lever" : ", reflecting meaningful progress in fuel switching"}.
-                  {" "}CCUS-enabled capacity reaches <strong style={{ color: "#fff" }}>{kpis.ccus_pct.toFixed(1)}%</strong>
+                  {" "}CCUS-enabled capacity reaches <strong>{kpis.ccus_pct.toFixed(1)}%</strong>
                   {kpis.ccus_pct < 5 ? " — nascent but critical for long-term deep decarbonization" : " — gaining traction among leading producers"}.
-                  {" "}The overall future readiness score is <strong style={{ color: "#fff" }}>{kpis.future_readiness_score.toFixed(0)} / 100</strong>
+                  {" "}The overall future readiness score is <strong>{kpis.future_readiness_score.toFixed(0)} / 100</strong>
                   {kpis.future_readiness_score < 30 ? ", indicating the industry remains in early stages of transition." : kpis.future_readiness_score < 60 ? ", reflecting a sector in active but uneven transition." : ", suggesting meaningful progress toward low-carbon production."}
-                </p>
-                <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", lineHeight: 1.6, margin: "10px 0 0" }}>
+                </div>
+                <div style={{
+                  marginTop: 8, paddingTop: 8,
+                  borderTop: "1px solid rgba(255,255,255,0.18)",
+                  fontSize: 10.5, fontStyle: "italic",
+                  color: "rgba(255,255,255,0.80)",
+                  lineHeight: 1.4,
+                }}>
                   Methodology · Future Readiness Score = 30% dry-process share + 30% alt fuel adoption + 20% CCUS + 10% clay calcination + 10% newer asset base, normalised 0–100. Future-Ready capacity requires dry-process + alt fuel + (CCUS or clay calcination).
-                </p>
+                </div>
               </div>
             )}
 
@@ -159,9 +206,7 @@ export default function TransitionReadinessPage() {
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>Transition Readiness Matrix</div>
                 <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Bubble position = carbon exposure (x) vs future readiness (y) · size = total capacity</div>
               </div>
-              {loading ? (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 480, color: "#94a3b8", fontSize: 13 }}>Loading…</div>
-              ) : (
+              {loading ? <LoadingSpinner height={480} /> : (
                 <TransitionMatrixChart data={matrixData} height={480} />
               )}
               <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 8 }}>Source: Global Cement & Concrete Tracker, GEM (July 2025)</p>
@@ -199,6 +244,27 @@ export default function TransitionReadinessPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Loading spinner ───────────────────────────────────────────────────────────
+function LoadingSpinner({ height = 320 }: { height?: number }) {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      height, gap: 12, color: "#94a3b8", fontSize: 13, fontFamily: F,
+    }}>
+      <div style={{
+        width: 28, height: 28,
+        border: "3px solid #f1f5f9",
+        borderTop: `3px solid ${BAIN_RED}`,
+        borderRadius: "50%",
+        animation: "spin 0.8s linear infinite",
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      Loading data…
     </div>
   );
 }
