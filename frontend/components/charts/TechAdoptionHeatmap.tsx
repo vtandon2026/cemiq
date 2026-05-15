@@ -56,26 +56,29 @@ export default function TechAdoptionHeatmap({ data, height = 280 }: Props) {
     // Cell data — no per-cell color override. The visualMap maps value[2]
     // (the adoption %) onto the gradient. Empty cells (value == null) are
     // represented as "-" and rendered with a tiny fallback opacity.
-    const series = data.data.map(cell => ({
-      value: [
-        regionIdx.get(cell.region),
-        techIdx.get(cell.tech),
-        cell.value == null ? "-" : cell.value,
-        cell.cap,
-      ],
-    }));
-
-    // Highlighted column outlines. Pattern for column highlight on a category
-    // x-axis: two markArea points sharing the same `xAxis` name. ECharts
-    // expands this into a band that's one category wide, centered on the
-    // category, and full-height (since no yAxis is specified).
+    // Highlighted columns: tag each cell whose column is in highlightedCols.
+    // We render the highlight as a thick red border on every cell in the column.
+    // Adjacent cells share their top/bottom edges, so the 3 stacked borders
+    // visually form a continuous column outline. (markArea on a category axis
+    // is unreliable for this — we tried `xAxis: col` patterns and ECharts
+    // either ignores them or renders zero-width.)
     const highlightedCols = data.highlighted_cols ?? [];
-    const markAreaData = highlightedCols
-      .filter(col => regionIdx.has(col))
-      .map(col => [
-        { xAxis: col },
-        { xAxis: col },
-      ]);
+    const hlSet = new Set(highlightedCols);
+
+    const series = data.data.map(cell => {
+      const isHl = hlSet.has(cell.region);
+      return {
+        value: [
+          regionIdx.get(cell.region),
+          techIdx.get(cell.tech),
+          cell.value == null ? "-" : cell.value,
+          cell.cap,
+        ],
+        itemStyle: isHl
+          ? { borderColor: "#E11C2A", borderWidth: 2.5 }
+          : undefined,
+      };
+    });
 
     // Layout decisions based on column count
     const hasZoom = xs.length > ZOOM_THRESHOLD;
@@ -221,6 +224,8 @@ export default function TechAdoptionHeatmap({ data, height = 280 }: Props) {
           },
         },
         itemStyle: {
+          // Default white grid border for non-highlighted cells. Highlighted
+          // cells override this with a red border via per-cell itemStyle.
           borderColor: "#fff",
           borderWidth: 2,
         },
@@ -230,17 +235,6 @@ export default function TechAdoptionHeatmap({ data, height = 280 }: Props) {
             borderWidth: 1.5,
           },
         },
-        // Highlight selected columns as a single continuous outline rather
-        // than per-cell borders (which fragment between adjacent cells).
-        markArea: markAreaData.length ? {
-          silent: true,
-          itemStyle: {
-            color: "transparent",
-            borderColor: "#E11C2A",
-            borderWidth: 2.5,
-          },
-          data: markAreaData,
-        } : undefined,
         progressive: 0,
         animation: true,
         animationDuration: 450,
