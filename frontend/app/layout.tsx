@@ -13,7 +13,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-gray-50 font-sans text-gray-800 antialiased" suppressHydrationWarning>
+      <body
+        className="bg-gray-50 font-sans text-gray-800 antialiased"
+        suppressHydrationWarning
+      >
         <ScrollToTop />
         <Navbar />
         <main className="px-4 py-4 max-w-[1600px] mx-auto">

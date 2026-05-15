@@ -1,4 +1,3 @@
-// PATH: frontend/app/page.tsx
 "use client";
 import Link from "next/link";
 
@@ -39,6 +38,13 @@ const CARDS = [
     badge: "2 views",
   },
   {
+    title: "ESG & Future Tech",
+    description: "Carbon exposure analysis, transition readiness matrix, and next-generation green cement pathways — CCUS, clay calcination, and clinker reduction across the global industry.",
+    footer: "GEM Tracker · Technology adoption · Carbon risk",
+    href: "/esg-and-future-tech/the-carbon-problem",
+    badge: "3 views",
+  },
+  {
     title: "Deck Builder",
     description: "Generate a complete PowerPoint deck with executive summary, growth charts, profit pool and KPI comparison slides — all think-cell powered.",
     footer: "Powered by think-cell",
@@ -48,21 +54,22 @@ const CARDS = [
 ];
 
 const PAGES = [
-  { section: "Construction Markets", label: "Construction Market Overview", href: "/construction-detail/construction-detail",      desc: "Mekko & Growth view · segment-level activity" },
-  { section: "Construction Markets", label: "Global Construction Map",      href: "/construction-detail/world-view-map",           desc: "Choropleth & Bubble map · country-level" },
-  { section: "Cement Analytics",     label: "Capacity Concentration",       href: "/cement-specific/capacity-concentration",       desc: "Top 3 share by country · GEM Tracker" },
-  { section: "Cement Analytics",     label: "Company Capacity Overview",    href: "/cement-specific/company-capacity",             desc: "Producer rankings · capacity leaderboard" },
-  { section: "Cement Analytics",     label: "M&A Activity",                 href: "/cement-specific/ma-deals",                     desc: "Deal value & count by year · Dealogic" },
-  { section: "Cement Analytics",     label: "Cement Sales",                 href: "/cement-specific/cement-sales",                 desc: "Cement & concrete demand trends" },
-  { section: "Cement Analytics",     label: "Cement Demand",                href: "/cement-specific/cement-demand",                desc: "Demand & consumption growth by country" },
-  { section: "Supply & Production",  label: "US Production Overview",       href: "/supply-production/us-production-overview",     desc: "Capacity by producer & state" },
-  { section: "Supply & Production",  label: "US Plant Level Insights",      href: "/supply-production/us-plant-insights",          desc: "Interactive plant location map" },
-  { section: "Supply & Production",  label: "Global Cement Volumes",        href: "/supply-production/global-cement-volumes",      desc: "Country-level production data" },
-  { section: "Business Performance", label: "KPIs",                         href: "/business-performance/kpis",                    desc: "Company financial diagnosis · 20+ KPIs" },
-  { section: "Stock & Valuation",    label: "Stock Price Overview",         href: "/stock-valuation/stock-price-overview",         desc: "Indexed share price performance" },
-  { section: "Stock & Valuation",    label: "Analyst Section",              href: "/stock-valuation/analyst-section",              desc: "Analyst benchmarking" },
+  { section: "Construction Markets", label: "Construction Market Overview", href: "/construction-detail/construction-detail", desc: "Mekko & Growth view · segment-level activity" },
+  { section: "Construction Markets", label: "Global Construction Map",      href: "/construction-detail/world-view-map",         desc: "Choropleth & Bubble map · country-level" },
+  { section: "Cement Analytics",     label: "Capacity Concentration",       href: "/cement-specific/capacity-concentration",     desc: "Top 3 share by country · GEM Tracker" },
+  { section: "Cement Analytics",     label: "Company Capacity Overview",          href: "/cement-specific/company-capacity",           desc: "Producer rankings · capacity leaderboard" },
+  { section: "Cement Analytics",     label: "M&A Activity",                 href: "/cement-specific/ma-deals",                   desc: "Deal value & count by year · Dealogic" },
+  { section: "Cement Analytics",     label: "Cement Sales",                 href: "/cement-specific/cement-sales",               desc: "Cement & concrete demand trends" },
+  { section: "Cement Analytics",     label: "Cement Demand",                href: "/cement-specific/cement-demand",              desc: "Demand & consumption growth by country" },
+  { section: "Supply & Production",  label: "US Production Overview",       href: "/supply-production/us-production-overview",   desc: "Capacity by producer & state" },
+  { section: "Supply & Production",  label: "US Plant Level Insights",      href: "/supply-production/us-plant-insights",        desc: "Interactive plant location map" },
+  { section: "Supply & Production",  label: "Global Cement Volumes",        href: "/supply-production/global-cement-volumes",    desc: "Country-level production data" },
+  { section: "Business Performance", label: "KPIs",                         href: "/business-performance/kpis",                  desc: "Company financial diagnosis · 20+ KPIs" },
+  { section: "Stock & Valuation",    label: "Stock Price Overview",         href: "/stock-valuation/stock-price-overview",       desc: "Indexed share price performance" },
+  { section: "Stock & Valuation",    label: "Analyst Section",              href: "/stock-valuation/analyst-section",            desc: "Analyst benchmarking" },
   { section: "ESG & Future Tech",    label: "The Carbon Problem",           href: "/esg-and-future-tech/the-carbon-problem",       desc: "Wet vs dry capacity · plant footprint · transition risk" },
   { section: "ESG & Future Tech",    label: "Transition Readiness",         href: "/esg-and-future-tech/transition-readiness",     desc: "Carbon exposure vs readiness matrix · technology adoption" },
+  { section: "ESG & Future Tech",    label: "The Future of Green Cement",   href: "/esg-and-future-tech/future-of-green-cement",   desc: "CCUS · clay calcination · clinker reduction pathways" },
 ];
 
 const FEATURES = [
@@ -97,7 +104,7 @@ const STATS = [
   { value: "2019", label: "Data from" },
   { value: "2029", label: "Forecast horizon" },
   { value: "20+",  label: "KPIs tracked" },
-  { value: "15", label: "Active pages" },
+  { value: "16",   label: "Active pages" },
   { value: "100%", label: "Bain-sourced data" },
 ];
 
@@ -126,7 +133,7 @@ export default function HomePage() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@500&display=swap');
-        .home-wrap { font-family: 'DM Sans', sans-serif; }
+        .home-wrap { font-family: 'DM Sans', sans-serif; width:100%; min-width:0; overflow-x:hidden; }
 
         .hero { position:relative; border-radius:16px; overflow:hidden; margin-bottom:48px; min-height:320px; display:flex; align-items:flex-end; }
         .hero-bg { position:absolute; inset:0; background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#2d475a 70%,#1a1a1a 100%); }
@@ -152,7 +159,8 @@ export default function HomePage() {
         .hero-cta-secondary { display:inline-flex; align-items:center; gap:7px; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.85); font-size:14px; font-weight:600; padding:10px 22px; border-radius:8px; text-decoration:none; border:1px solid rgba(255,255,255,0.12); transition:background 0.15s; font-family:'DM Sans',sans-serif; }
         .hero-cta-secondary:hover { background:rgba(255,255,255,0.13); }
 
-        .stats-bar { display:grid; grid-template-columns:repeat(6,1fr); gap:0; background:white; border:1px solid #e2e8f0; border-radius:12px; margin-bottom:56px; overflow:hidden; }
+        .stats-bar { display:grid; grid-template-columns:repeat(6,1fr); gap:0; background:white; border:1px solid #e2e8f0; border-radius:12px; margin-bottom:56px; overflow:hidden; min-width:0; }
+        @media(max-width:768px){.stats-bar{grid-template-columns:repeat(3,1fr);}}
         .stat-item { padding:20px 16px; text-align:center; border-right:1px solid #f1f5f9; transition:background 0.15s; }
         .stat-item:last-child { border-right:none; }
         .stat-item:hover { background:#fef2f2; }
@@ -164,7 +172,7 @@ export default function HomePage() {
         .section-title { font-size:26px; font-weight:800; color:#0f172a; letter-spacing:-0.5px; margin-bottom:8px; }
         .section-sub { font-size:14px; color:#64748b; max-width:560px; line-height:1.6; }
 
-        .cards-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:56px; }
+        .cards-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:56px; min-width:0; }
         @media(max-width:1024px){.cards-grid{grid-template-columns:repeat(2,1fr);}}
         @media(max-width:640px){.cards-grid{grid-template-columns:1fr;}}
         .module-card { background:white; border:1px solid #e2e8f0; border-radius:12px; padding:20px 22px 18px; text-decoration:none; display:flex; flex-direction:column; transition:box-shadow 0.18s,border-color 0.18s,transform 0.12s; position:relative; overflow:hidden; }
@@ -183,9 +191,9 @@ export default function HomePage() {
         .module-card:hover .card-arrow { background:#E11C2A; color:white; transform:translateX(2px); }
 
         .pages-section { margin-bottom:56px; }
-        .pages-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-        @media(max-width:1024px){.pages-grid{grid-template-columns:repeat(3,1fr);}}
-        @media(max-width:640px){.pages-grid{grid-template-columns:repeat(2,1fr);}}
+        .pages-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; min-width:0; }
+        @media(max-width:1200px){.pages-grid{grid-template-columns:repeat(3,1fr);}}
+        @media(max-width:768px){.pages-grid{grid-template-columns:repeat(2,1fr);}}
         .page-card { background:white; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; text-decoration:none; display:flex; flex-direction:column; gap:6px; transition:border-color 0.15s,box-shadow 0.15s,transform 0.12s; }
         .page-card:hover { border-color:#fca5a5; box-shadow:0 2px 12px rgba(225,28,42,0.08); transform:translateY(-1px); }
         .page-section-tag { font-size:9.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; padding:2px 6px; border-radius:4px; display:inline-block; width:fit-content; }
@@ -201,7 +209,7 @@ export default function HomePage() {
         .features-header .section-eyebrow { color:#f87171; }
         .features-header .section-title   { color:white; }
         .features-header .section-sub     { color:rgba(255,255,255,0.5); }
-        .features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+        .features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; min-width:0; }
         @media(max-width:1024px){.features-grid{grid-template-columns:repeat(2,1fr);}}
         @media(max-width:640px){.features-grid{grid-template-columns:1fr;}}
         .feature-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:22px; transition:background 0.15s,border-color 0.15s; }
@@ -210,8 +218,7 @@ export default function HomePage() {
         .feature-body  { font-size:13px; color:rgba(255,255,255,0.5); line-height:1.65; }
 
         .sources-section { margin-bottom:56px; }
-        .sources-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:10px; }
-        @media(max-width:1024px){.sources-grid{grid-template-columns:repeat(4,1fr);}}
+        .sources-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
         @media(max-width:640px){.sources-grid{grid-template-columns:repeat(2,1fr);}}
         .source-card { background:white; border:1px solid #e2e8f0; border-radius:10px; padding:14px; text-align:center; transition:border-color 0.15s,box-shadow 0.15s; }
         .source-card:hover { border-color:#fca5a5; box-shadow:0 2px 12px rgba(225,28,42,0.08); }
@@ -281,7 +288,7 @@ export default function HomePage() {
         {/* ── MODULE CARDS ──────────────────────────────────── */}
         <div className="section-header">
           <div className="section-eyebrow">Platform Modules</div>
-          <h2 className="section-title">Six modules, one platform</h2>
+          <h2 className="section-title">Seven modules, one platform</h2>
           <p className="section-sub">
             From macro construction sizing to producer-level capacity dynamics,
             financial diagnostics and investor analytics — all integrated.
@@ -307,7 +314,7 @@ export default function HomePage() {
         <div className="pages-section">
           <div className="section-header">
             <div className="section-eyebrow">All Pages</div>
-            <h2 className="section-title">12 views, fully navigable</h2>
+            <h2 className="section-title">16 views, fully navigable</h2>
             <p className="section-sub">
               Jump directly to any page across all modules.
             </p>

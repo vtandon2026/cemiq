@@ -64,12 +64,12 @@ function buildBarChartTable(hero: CarbonHeroData, title: string) {
   // chart shows it (so totals reconcile to the KPI tiles), but for a PPT
   // deliverable we want only the meaningful typed categories so the slide
   // tells a clearer story. See the on-screen note under each chart.
-  const dryRow     = [ts("Dry"),     ...hero.data.map(r => tcNum(r.dry))];
-  const mixedRow   = [ts("Mixed"),   ...hero.data.map(r => tcNum(r.mixed))];
-  const wetRow     = [ts("Wet"),     ...hero.data.map(r => tcNum(r.wet))];
+  const dryRow = [ts("Dry"), ...hero.data.map(r => tcNum(r.dry))];
+  const mixedRow = [ts("Mixed"), ...hero.data.map(r => tcNum(r.mixed))];
+  const wetRow = [ts("Wet"), ...hero.data.map(r => tcNum(r.wet))];
 
   return [
-    { name: "BarChart",   table: [header, dryRow, mixedRow, wetRow] },
+    { name: "BarChart", table: [header, dryRow, mixedRow, wetRow] },
     { name: "ChartTitle", table: [[ts(title)]] },
   ];
 }
@@ -80,14 +80,14 @@ function buildIntegratedGrindingTable(
 ) {
   // Each plant_type is a separate bar on the x-axis. Single-stack (one row).
   // Bain colors are baked into the template's series ordering; we just send values.
-  const header  = [null, ...data.map(r => ts(
+  const header = [null, ...data.map(r => ts(
     // Title-case display
     r.plant_type.charAt(0).toUpperCase() + r.plant_type.slice(1)
   ))];
-  const capRow  = [ts("Capacity"), ...data.map(r => tcNum(r.capacity))];
+  const capRow = [ts("Capacity"), ...data.map(r => tcNum(r.capacity))];
 
   return [
-    { name: "BarChart",   table: [header, capRow] },
+    { name: "BarChart", table: [header, capRow] },
     { name: "ChartTitle", table: [[ts(title)]] },
   ];
 }
@@ -97,13 +97,13 @@ function buildPlantAgeGrowthTable(
   title: string,
 ) {
   // Header = age buckets. Bar series = plant count. Line series = capacity.
-  const header   = [null, ...data.map(r => ts(r.bucket))];
-  const countRow = [ts("Plants"),   ...data.map(r => tcNum(r.count))];
-  const capRow   = [ts("Capacity"), ...data.map(r => tcNum(r.capacity))];
+  const header = [null, ...data.map(r => ts(r.bucket))];
+  const countRow = [ts("Plants"), ...data.map(r => tcNum(r.count))];
+  const capRow = [ts("Capacity"), ...data.map(r => tcNum(r.capacity))];
 
   return [
     { name: "GrowthChart", table: [header, countRow, capRow] },
-    { name: "ChartTitle",  table: [[ts(title)]] },
+    { name: "ChartTitle", table: [[ts(title)]] },
   ];
 }
 
@@ -195,12 +195,12 @@ export default function CarbonProblemPage() {
   const [meta, setMeta] = useState<CarbonMeta | null>(null);
 
   // ── Filters ─────────────────────────────────────────────────────────────────
-  const [countries, setCountries]   = useState<string[]>([]);
-  const [companies, setCompanies]   = useState<string[]>([]);
+  const [countries, setCountries] = useState<string[]>([]);
+  const [companies, setCompanies] = useState<string[]>([]);
   // Click-driven set: which bars in hero are "active" — drives the plants chart.
   const [clickedCompanies, setClickedCompanies] = useState<string[]>([]);
-  const [plantType, setPlantType]   = useState<string>(ALL_PLANT_TYPES);
-  const [statuses, setStatuses]     = useState<string[]>([]);
+  const [plantType, setPlantType] = useState<string>(ALL_PLANT_TYPES);
+  const [statuses, setStatuses] = useState<string[]>([]);
 
   // Companies list scoped to selected countries
   const [scopedCompanies, setScopedCompanies] = useState<string[]>([]);
@@ -212,17 +212,17 @@ export default function CarbonProblemPage() {
   // React so the "Reset zoom" button can show conditionally.
   // Integrated/Grinding has at most 3 categories — no need for zoom.
   type ZoomRange = { startIdx: number; endIdx: number; total: number };
-  const heroRef    = useRef<CarbonStackedBarHandle>(null);
-  const plantsRef  = useRef<CarbonStackedBarHandle>(null);
+  const heroRef = useRef<CarbonStackedBarHandle>(null);
+  const plantsRef = useRef<CarbonStackedBarHandle>(null);
 
-  const [heroZoom,    setHeroZoom]    = useState<ZoomRange | null>(null);
-  const [plantsZoom,  setPlantsZoom]  = useState<ZoomRange | null>(null);
+  const [heroZoom, setHeroZoom] = useState<ZoomRange | null>(null);
+  const [plantsZoom, setPlantsZoom] = useState<ZoomRange | null>(null);
 
   // Helpers — is the chart actually zoomed (i.e. not showing all rows)?
   const isZoomedRange = (z: ZoomRange | null) =>
     !!z && (z.startIdx > 0 || z.endIdx < z.total - 1);
-  const heroIsZoomed    = isZoomedRange(heroZoom);
-  const plantsIsZoomed  = isZoomedRange(plantsZoom);
+  const heroIsZoomed = isZoomedRange(heroZoom);
+  const plantsIsZoomed = isZoomedRange(plantsZoom);
 
   // Top-N is no longer user-controllable — sliders were removed in favor of
   // chart-level zoom. Backend still wants a cap, so use a very high number to
@@ -230,27 +230,27 @@ export default function CarbonProblemPage() {
   const TOP_N_ALL = 9999;
 
   // Data
-  const [kpis, setKpis]                 = useState<CarbonKpis | null>(null);
-  const [hero, setHero]                 = useState<CarbonHeroData | null>(null);
-  const [heroPlants, setHeroPlants]     = useState<CarbonHeroData | null>(null);
-  const [mapData, setMapData]           = useState<CarbonMapData | null>(null);
+  const [kpis, setKpis] = useState<CarbonKpis | null>(null);
+  const [hero, setHero] = useState<CarbonHeroData | null>(null);
+  const [heroPlants, setHeroPlants] = useState<CarbonHeroData | null>(null);
+  const [mapData, setMapData] = useState<CarbonMapData | null>(null);
   const [intGrindData, setIntGrindData] = useState<CarbonIntegratedGrindingData | null>(null);
-  const [plantAge, setPlantAge]         = useState<CarbonPlantAgeData | null>(null);
+  const [plantAge, setPlantAge] = useState<CarbonPlantAgeData | null>(null);
 
   // UI
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState<string | null>(null);
 
   // ── In-app confirm modal (replaces window.confirm) ────────────────────────
   // State holds the active prompt + a resolver. callers `await confirmModal(...)`
   // which resolves to true/false based on which button the user clicks.
   type ConfirmState = {
-    open:    boolean;
-    title:   string;
+    open: boolean;
+    title: string;
     message: string;
     confirmLabel?: string;
-    cancelLabel?:  string;
+    cancelLabel?: string;
     resolve: ((value: boolean) => void) | null;
   };
   const [confirmState, setConfirmState] = useState<ConfirmState>({
@@ -267,7 +267,7 @@ export default function CarbonProblemPage() {
         title: opts.title,
         message: opts.message,
         confirmLabel: opts.confirmLabel,
-        cancelLabel:  opts.cancelLabel,
+        cancelLabel: opts.cancelLabel,
         resolve,
       });
     });
@@ -302,15 +302,15 @@ export default function CarbonProblemPage() {
 
   // ── Build payloads ─────────────────────────────────────────────────────────
   const chartPayload = useMemo(() => ({
-    countries:  countries.length ? countries : null,
-    companies:  companies.length ? companies : null,
+    countries: countries.length ? countries : null,
+    companies: companies.length ? companies : null,
     plant_type: plantType === ALL_PLANT_TYPES ? null : plantType,
-    statuses:   statuses.length > 0 ? statuses : null,
+    statuses: statuses.length > 0 ? statuses : null,
   }), [countries, companies, plantType, statuses]);
 
   const kpiPayload = useMemo(() => ({
-    countries:  countries.length ? countries : null,
-    statuses:   statuses.length > 0 ? statuses : null,
+    countries: countries.length ? countries : null,
+    statuses: statuses.length > 0 ? statuses : null,
   }), [countries, statuses]);
 
   const countryScopeLabel = useMemo(() => {
@@ -347,11 +347,11 @@ export default function CarbonProblemPage() {
   const clickedPill: PillSpec | null = useMemo(() =>
     clickedCompanies.length === 0 ? null
       : {
-          label: "Highlighted",
-          value: clickedCompanies.length === 1
-            ? clickedCompanies[0]
-            : `${clickedCompanies.length} companies`,
-        },
+        label: "Highlighted",
+        value: clickedCompanies.length === 1
+          ? clickedCompanies[0]
+          : `${clickedCompanies.length} companies`,
+      },
     [clickedCompanies]);
 
   // Per-chart pill arrays. Filter out `null` so the row only contains active ones.
@@ -383,7 +383,7 @@ export default function CarbonProblemPage() {
     setError(null);
 
     const companiesTopN = TOP_N_ALL;
-    const plantsTopN    = TOP_N_ALL;
+    const plantsTopN = TOP_N_ALL;
 
     // Hero (companies, left): respects multi-select via `companies`
     const heroCompaniesPayload = {
@@ -393,11 +393,11 @@ export default function CarbonProblemPage() {
     // Plants (right): only loaded when bars are clicked. Filter by clickedCompanies.
     const heroPlantsPayload = hasClickedBars
       ? {
-          ...chartPayload,
-          companies: clickedCompanies,   // ← override the multi-select with click set
-          top_n: plantsTopN,
-          axis: "plant" as const,
-        }
+        ...chartPayload,
+        companies: clickedCompanies,   // ← override the multi-select with click set
+        top_n: plantsTopN,
+        axis: "plant" as const,
+      }
       : null;
 
     // Map / I-G / Age — use clickedCompanies if present (focus those plants),
@@ -465,7 +465,7 @@ export default function CarbonProblemPage() {
     setExporting(which);
     try {
       const data = builder();
-      const res  = await exportPptx({ template, data, filename });
+      const res = await exportPptx({ template, data, filename });
       downloadBlob(res.data as Blob, filename);
     } catch (e) {
       alert(`PPT export failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -475,34 +475,45 @@ export default function CarbonProblemPage() {
   };
 
   const kpiStrip = (
-    <div style={{ display: "flex", gap: 12 }}>
-      <KpiTile
-        label="Total Cement Capacity"
-        scope={countryScopeLabel}
-        value={fmtNum(kpis?.total_cement_capacity, 1)}
-        suffix="Mtpa"
-      />
-      <KpiTile
-        label="Total Clinker Capacity"
-        scope={countryScopeLabel}
-        value={fmtNum(kpis?.total_clinker_capacity, 1)}
-        suffix="Mtpa"
-      />
-      <KpiTile
-        label="% Wet Process Capacity"
-        scope={countryScopeLabel}
-        value={fmtNum(kpis?.pct_wet_capacity, 1)}
-        suffix="%"
-        accent={(kpis?.pct_wet_capacity ?? 0) > 20}
-        sublabel="Higher = elevated transition risk · excludes plants with unknown production type"
-      />
-      <KpiTile
-        label="% Plants Using Alt. Fuel"
-        scope={countryScopeLabel}
-        value={fmtNum(kpis?.pct_alt_fuel, 1)}
-        suffix="%"
-        sublabel="Transition indicator · excludes plants with no alt-fuel record"
-      />
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 0 }}>
+      {[
+        {
+          label: "Total Cement Capacity",
+          value: fmtNum(kpis?.total_cement_capacity, 1),
+          suffix: "Mtpa",
+          sub: countryScopeLabel,
+          color: "#E11C2A",
+        },
+        {
+          label: "Total Clinker Capacity",
+          value: fmtNum(kpis?.total_clinker_capacity, 1),
+          suffix: "Mtpa",
+          sub: countryScopeLabel,
+          color: "#2563eb",
+        },
+        {
+          label: "Wet Process Capacity",
+          value: fmtNum(kpis?.pct_wet_capacity, 1),
+          suffix: "%",
+          sub: "Higher = elevated transition risk",
+          color: (kpis?.pct_wet_capacity ?? 0) > 20 ? "#E11C2A" : "#d97706",
+        },
+        {
+          label: "Alt Fuel Adoption",
+          value: fmtNum(kpis?.pct_alt_fuel, 1),
+          suffix: "%",
+          sub: "% of plants using alternative fuels",
+          color: "#059669",
+        },
+      ].map(k => (
+        <div key={k.label} style={{ background: "#fff", border: "1px solid #e9ecef", borderRadius: 10, padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: k.color, marginBottom: 4 }}>
+            {k.value}<span style={{ fontSize: 13, fontWeight: 500, color: k.color, marginLeft: 3, opacity: 0.7 }}>{k.suffix}</span>
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#1e293b", marginBottom: 3 }}>{k.label}</div>
+          <div style={{ fontSize: 10, color: "#94a3b8" }}>{k.sub}</div>
+        </div>
+      ))}
     </div>
   );
 
@@ -528,190 +539,190 @@ export default function CarbonProblemPage() {
         }}>
           <Sidebar title="Filters">
 
-          <MultiSelect
-            label="Country"
-            options={meta?.countries ?? []}
-            selected={countries}
-            onChange={(next: string[]) => {
-              setCountries(next);
-              setClickedCompanies([]);   // clear bar selections on country change
-            }}
-            allLabel="All countries"
-            placeholder="All countries"
-          />
+            <MultiSelect
+              label="Country"
+              options={meta?.countries ?? []}
+              selected={countries}
+              onChange={(next: string[]) => {
+                setCountries(next);
+                setClickedCompanies([]);   // clear bar selections on country change
+              }}
+              allLabel="All countries"
+              placeholder="All countries"
+            />
 
-          <MultiSelect
-            label="Company"
-            options={scopedCompanies}
-            selected={companies}
-            onChange={(next: string[]) => {
-              setCompanies(next);
-              // Drop click-highlights that fall outside the new multi-select.
-              // (A company you no longer want in the hero shouldn't drive plants.)
-              if (next.length > 0) {
-                const allowed = new Set(next);
-                setClickedCompanies(prev => prev.filter(c => allowed.has(c)));
-              }
-            }}
-            allLabel="All companies"
-            placeholder="All companies"
-            loading={companiesLoading}
-          />
+            <MultiSelect
+              label="Company"
+              options={scopedCompanies}
+              selected={companies}
+              onChange={(next: string[]) => {
+                setCompanies(next);
+                // Drop click-highlights that fall outside the new multi-select.
+                // (A company you no longer want in the hero shouldn't drive plants.)
+                if (next.length > 0) {
+                  const allowed = new Set(next);
+                  setClickedCompanies(prev => prev.filter(c => allowed.has(c)));
+                }
+              }}
+              allLabel="All companies"
+              placeholder="All companies"
+              loading={companiesLoading}
+            />
 
-          <div>
-            <FilterLabel>Plant Type</FilterLabel>
-            <FilterSelect value={plantType} onChange={e => setPlantType(e.target.value)}>
-              <option>{ALL_PLANT_TYPES}</option>
-              {(meta?.plant_types ?? []).map(p => (
-                <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
-              ))}
-            </FilterSelect>
-          </div>
-
-          <FilterDivider />
-
-          <div>
-            <FilterLabel>Operating Status</FilterLabel>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
-              {(meta?.statuses ?? []).map(s => {
-                const checked = statuses.includes(s);
-                return (
-                  <label key={s} style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    fontSize: 11.5, color: "#475569", cursor: "pointer", fontFamily: F,
-                    padding: "3px 6px", borderRadius: 4,
-                    background: checked ? "#fef2f2" : "transparent",
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={e => setStatuses(prev =>
-                        e.target.checked ? [...prev, s] : prev.filter(x => x !== s)
-                      )}
-                      style={{ accentColor: BAIN_RED, cursor: "pointer" }}
-                    />
-                    <span style={{ textTransform: "capitalize" }}>{s}</span>
-                  </label>
-                );
-              })}
+            <div>
+              <FilterLabel>Plant Type</FilterLabel>
+              <FilterSelect value={plantType} onChange={e => setPlantType(e.target.value)}>
+                <option>{ALL_PLANT_TYPES}</option>
+                {(meta?.plant_types ?? []).map(p => (
+                  <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                ))}
+              </FilterSelect>
             </div>
-            {statuses.length === 0 && (
-              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, fontFamily: F }}>
-                None selected = all statuses
+
+            <FilterDivider />
+
+            <div>
+              <FilterLabel>Operating Status</FilterLabel>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
+                {(meta?.statuses ?? []).map(s => {
+                  const checked = statuses.includes(s);
+                  return (
+                    <label key={s} style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      fontSize: 11.5, color: "#475569", cursor: "pointer", fontFamily: F,
+                      padding: "3px 6px", borderRadius: 4,
+                      background: checked ? "#fef2f2" : "transparent",
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={e => setStatuses(prev =>
+                          e.target.checked ? [...prev, s] : prev.filter(x => x !== s)
+                        )}
+                        style={{ accentColor: BAIN_RED, cursor: "pointer" }}
+                      />
+                      <span style={{ textTransform: "capitalize" }}>{s}</span>
+                    </label>
+                  );
+                })}
               </div>
-            )}
-          </div>
+              {statuses.length === 0 && (
+                <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, fontFamily: F }}>
+                  None selected = all statuses
+                </div>
+              )}
+            </div>
 
-          <FilterDivider />
+            <FilterDivider />
 
-          <button
-            onClick={async () => {
-              // Read live zoom from each chart instance (bypasses React state
-              // which is debounced 150ms after drag). More reliable than
-              // checking heroZoom/plantsZoom state.
-              const heroLive   = heroRef.current?.getVisibleRange?.()   ?? null;
-              const plantsLive = plantsRef.current?.getVisibleRange?.() ?? null;
-              const heroLiveZoomed   = !!heroLive   && (heroLive.startIdx > 0   || heroLive.endIdx < heroLive.total - 1);
-              const plantsLiveZoomed = !!plantsLive && (plantsLive.startIdx > 0 || plantsLive.endIdx < plantsLive.total - 1);
+            <button
+              onClick={async () => {
+                // Read live zoom from each chart instance (bypasses React state
+                // which is debounced 150ms after drag). More reliable than
+                // checking heroZoom/plantsZoom state.
+                const heroLive = heroRef.current?.getVisibleRange?.() ?? null;
+                const plantsLive = plantsRef.current?.getVisibleRange?.() ?? null;
+                const heroLiveZoomed = !!heroLive && (heroLive.startIdx > 0 || heroLive.endIdx < heroLive.total - 1);
+                const plantsLiveZoomed = !!plantsLive && (plantsLive.startIdx > 0 || plantsLive.endIdx < plantsLive.total - 1);
 
-              // Apply zoom ranges (if zoomed) to the two zoomable charts.
-              // Compute up-front so the confirm dialog can be shown before
-              // we flip into the loading state.
-              const heroSliced   = hero       ? sliceHero(hero,       heroLiveZoomed   ? heroLive   : null) : null;
-              const plantsSliced = heroPlants ? sliceHero(heroPlants, plantsLiveZoomed ? plantsLive : null) : null;
+                // Apply zoom ranges (if zoomed) to the two zoomable charts.
+                // Compute up-front so the confirm dialog can be shown before
+                // we flip into the loading state.
+                const heroSliced = hero ? sliceHero(hero, heroLiveZoomed ? heroLive : null) : null;
+                const plantsSliced = heroPlants ? sliceHero(heroPlants, plantsLiveZoomed ? plantsLive : null) : null;
 
-              // One combined confirm if either chart is currently zoomed
-              const zoomedCharts: string[] = [];
-              if (heroLiveZoomed)   zoomedCharts.push(`• Companies (${(heroLive!.endIdx - heroLive!.startIdx + 1)}/${heroLive!.total} bars)`);
-              if (plantsLiveZoomed) zoomedCharts.push(`• Plants (${(plantsLive!.endIdx - plantsLive!.startIdx + 1)}/${plantsLive!.total} bars)`);
-              if (zoomedCharts.length > 0) {
-                const proceed = await confirmModal({
-                  title: "One or more charts are zoomed",
-                  message:
-                    `${zoomedCharts.join("\n")}\n\n` +
-                    `The deck will export only the visible (zoomed) bars from these charts. ` +
-                    `Click the reset icon in each chart's top-right corner first if you want the full data.`,
-                  confirmLabel: "Export visible bars",
-                  cancelLabel:  "Cancel",
-                });
-                if (!proceed) return;
-              }
-
-              setExporting("deck");
-              try {
-                const slides: { template: string; data: { name: string; table: unknown[][] }[] }[] = [];
-
-                // Slide 1: Companies bar
-                if (heroSliced?.data?.length) {
-                  slides.push({
-                    template: "bar",
-                    data: buildBarChartTable(
-                      heroSliced,
-                      `Wet vs Dry Capacity — Companies (${countryScopeLabel})`,
-                    ),
+                // One combined confirm if either chart is currently zoomed
+                const zoomedCharts: string[] = [];
+                if (heroLiveZoomed) zoomedCharts.push(`• Companies (${(heroLive!.endIdx - heroLive!.startIdx + 1)}/${heroLive!.total} bars)`);
+                if (plantsLiveZoomed) zoomedCharts.push(`• Plants (${(plantsLive!.endIdx - plantsLive!.startIdx + 1)}/${plantsLive!.total} bars)`);
+                if (zoomedCharts.length > 0) {
+                  const proceed = await confirmModal({
+                    title: "One or more charts are zoomed",
+                    message:
+                      `${zoomedCharts.join("\n")}\n\n` +
+                      `The deck will export only the visible (zoomed) bars from these charts. ` +
+                      `Click the reset icon in each chart's top-right corner first if you want the full data.`,
+                    confirmLabel: "Export visible bars",
+                    cancelLabel: "Cancel",
                   });
+                  if (!proceed) return;
                 }
 
-                // Slide 2: Plants bar (only if user has drilled into specific companies)
-                if (plantsSliced?.data?.length) {
-                  slides.push({
-                    template: "bar",
-                    data: buildBarChartTable(
-                      plantsSliced,
-                      `Wet vs Dry Capacity — Plants (${countryScopeLabel})`,
-                    ),
-                  });
-                }
+                setExporting("deck");
+                try {
+                  const slides: { template: string; data: { name: string; table: unknown[][] }[] }[] = [];
 
-                // Slide 3: Integrated vs Grinding (no zoom — at most 3 categories)
-                if (intGrindData?.data?.length) {
-                  slides.push({
-                    template: "bar",
-                    data: buildIntegratedGrindingTable(
-                      intGrindData.data,
-                      `Integrated vs Grinding — ${countryScopeLabel}`,
-                    ),
-                  });
-                }
+                  // Slide 1: Companies bar
+                  if (heroSliced?.data?.length) {
+                    slides.push({
+                      template: "bar",
+                      data: buildBarChartTable(
+                        heroSliced,
+                        `Wet vs Dry Capacity — Companies (${countryScopeLabel})`,
+                      ),
+                    });
+                  }
 
-                // Slide 4: Plant Age (no zoom — at most 5 buckets)
-                if (plantAge?.data?.length) {
-                  slides.push({
-                    template: "carbon_plant_age",
-                    data: buildPlantAgeGrowthTable(
-                      plantAge.data,
-                      `Plant Age Distribution — ${countryScopeLabel}`,
-                    ),
-                  });
-                }
+                  // Slide 2: Plants bar (only if user has drilled into specific companies)
+                  if (plantsSliced?.data?.length) {
+                    slides.push({
+                      template: "bar",
+                      data: buildBarChartTable(
+                        plantsSliced,
+                        `Wet vs Dry Capacity — Plants (${countryScopeLabel})`,
+                      ),
+                    });
+                  }
 
-                if (slides.length === 0) {
-                  alert("No data available to export.");
-                  return;
-                }
+                  // Slide 3: Integrated vs Grinding (no zoom — at most 3 categories)
+                  if (intGrindData?.data?.length) {
+                    slides.push({
+                      template: "bar",
+                      data: buildIntegratedGrindingTable(
+                        intGrindData.data,
+                        `Integrated vs Grinding — ${countryScopeLabel}`,
+                      ),
+                    });
+                  }
 
-                const filename = `carbon_problem_${countrySlug}.pptx`;
-                const res = await exportPptxDeck({ slides, filename });
-                downloadBlob(res.data as Blob, filename);
-              } catch (e) {
-                alert(`Deck export failed: ${e instanceof Error ? e.message : String(e)}`);
-              } finally {
-                setExporting(null);
-              }
-            }}
-            disabled={!hero || exporting === "deck"}
-            style={{
-              width: "100%", padding: "8px 10px",
-              background: BAIN_RED, color: "#fff",
-              border: "none", borderRadius: 6,
-              fontSize: 12, fontWeight: 600, cursor: "pointer",
-              fontFamily: F, opacity: !hero || exporting === "deck" ? 0.6 : 1,
-              transition: "opacity 0.15s",
-            }}
-          >
-            {exporting === "deck" ? "Exporting..." : "Export All to Deck"}
-          </button>
-        </Sidebar>
+                  // Slide 4: Plant Age (no zoom — at most 5 buckets)
+                  if (plantAge?.data?.length) {
+                    slides.push({
+                      template: "carbon_plant_age",
+                      data: buildPlantAgeGrowthTable(
+                        plantAge.data,
+                        `Plant Age Distribution — ${countryScopeLabel}`,
+                      ),
+                    });
+                  }
+
+                  if (slides.length === 0) {
+                    alert("No data available to export.");
+                    return;
+                  }
+
+                  const filename = `carbon_problem_${countrySlug}.pptx`;
+                  const res = await exportPptxDeck({ slides, filename });
+                  downloadBlob(res.data as Blob, filename);
+                } catch (e) {
+                  alert(`Deck export failed: ${e instanceof Error ? e.message : String(e)}`);
+                } finally {
+                  setExporting(null);
+                }
+              }}
+              disabled={!hero || exporting === "deck"}
+              style={{
+                width: "100%", padding: "8px 10px",
+                background: BAIN_RED, color: "#fff",
+                border: "none", borderRadius: 6,
+                fontSize: 12, fontWeight: 600, cursor: "pointer",
+                fontFamily: F, opacity: !hero || exporting === "deck" ? 0.6 : 1,
+                transition: "opacity 0.15s",
+              }}
+            >
+              {exporting === "deck" ? "Exporting..." : "Export All to Deck"}
+            </button>
+          </Sidebar>
         </div>
 
         {/* ── Main content ──────────────────────────────────────────────── */}
@@ -833,7 +844,7 @@ export default function CarbonProblemPage() {
                     csvDisabled={!hero}
                     onPpt={async () => {
                       if (!hero) return;
-                      const live  = heroRef.current?.getVisibleRange?.();
+                      const live = heroRef.current?.getVisibleRange?.();
                       const range = (live && (live.startIdx > 0 || live.endIdx < live.total - 1))
                         ? live
                         : (heroIsZoomed ? heroZoom : null);
@@ -842,7 +853,7 @@ export default function CarbonProblemPage() {
                           title: "Export zoomed view to PPT?",
                           message: zoomedExportMessage(range, "Wet vs Dry Capacity Mix · Companies"),
                           confirmLabel: "Export visible bars",
-                          cancelLabel:  "Cancel",
+                          cancelLabel: "Cancel",
                         });
                         if (!ok) return;
                       }
@@ -923,7 +934,7 @@ export default function CarbonProblemPage() {
                       // Read live zoom from the chart instance first; fall back
                       // to React state (debounced ~150ms after drag). Either
                       // source should be accurate; using both belt-and-suspenders.
-                      const live  = plantsRef.current?.getVisibleRange?.();
+                      const live = plantsRef.current?.getVisibleRange?.();
                       const range = (live && (live.startIdx > 0 || live.endIdx < live.total - 1))
                         ? live
                         : (plantsIsZoomed ? plantsZoom : null);
@@ -932,7 +943,7 @@ export default function CarbonProblemPage() {
                           title: "Export zoomed view to PPT?",
                           message: zoomedExportMessage(range, "Wet vs Dry Capacity Mix · Plants"),
                           confirmLabel: "Export visible bars",
-                          cancelLabel:  "Cancel",
+                          cancelLabel: "Cancel",
                         });
                         if (!ok) return;
                       }
@@ -1191,44 +1202,44 @@ function IntegratedGrindingBar({
   //   Integrated    = full clinker→cement process → Bain red (carbon-heaviest)
   //   Clinker only  = clinker burn only, no grinding → Bain yellow (still high carbon)
   //   Grinding      = downstream grinding only      → Bain green (lightest footprint)
-  const COLOR_INTEGRATED   = "#E11C2A";  // Bain red
+  const COLOR_INTEGRATED = "#E11C2A";  // Bain red
   const COLOR_CLINKER_ONLY = "#F0B400";  // Bain yellow
-  const COLOR_GRINDING     = "#2D7D46";  // Bain green
-  const COLOR_OTHER        = "#94a3b8";  // gray fallback
+  const COLOR_GRINDING = "#2D7D46";  // Bain green
+  const COLOR_OTHER = "#94a3b8";  // gray fallback
 
   // Normalize a raw label to one of our 4 keys.
   // GEM data uses lowercase: "integrated", "grinding", "clinker only" (with space)
   const keyFor = (label: string): "integrated" | "clinker_only" | "grinding" | "other" => {
     const l = label.toLowerCase().trim();
     if (l === "integrated") return "integrated";
-    if (l === "grinding")   return "grinding";
+    if (l === "grinding") return "grinding";
     if (l === "clinker only" || l === "clinker_only" || l === "clinker") return "clinker_only";
     return "other";
   };
 
   const colorForKey = (k: string): string => {
-    if (k === "integrated")   return COLOR_INTEGRATED;
+    if (k === "integrated") return COLOR_INTEGRATED;
     if (k === "clinker_only") return COLOR_CLINKER_ONLY;
-    if (k === "grinding")     return COLOR_GRINDING;
+    if (k === "grinding") return COLOR_GRINDING;
     return COLOR_OTHER;
   };
 
   // Display label (title case for the bar's x-axis tick AND the legend)
   const displayLabel = (rawLabel: string): string => {
     const k = keyFor(rawLabel);
-    if (k === "integrated")   return "Integrated";
+    if (k === "integrated") return "Integrated";
     if (k === "clinker_only") return "Clinker only";
-    if (k === "grinding")     return "Grinding";
+    if (k === "grinding") return "Grinding";
     return rawLabel;
   };
 
   // Series-per-category so legend swatches lock to the right colors and toggling works.
   // Each series only carries values for bars matching its key; others are null.
   const seriesDefs: { key: "integrated" | "clinker_only" | "grinding" | "other"; label: string; color: string }[] = [
-    { key: "integrated",   label: "Integrated",   color: COLOR_INTEGRATED   },
+    { key: "integrated", label: "Integrated", color: COLOR_INTEGRATED },
     { key: "clinker_only", label: "Clinker only", color: COLOR_CLINKER_ONLY },
-    { key: "grinding",     label: "Grinding",     color: COLOR_GRINDING     },
-    { key: "other",        label: "Other",        color: COLOR_OTHER        },
+    { key: "grinding", label: "Grinding", color: COLOR_GRINDING },
+    { key: "other", label: "Other", color: COLOR_OTHER },
   ];
 
   // Determine which series actually have data
@@ -1323,11 +1334,11 @@ function ChartCardShell({
   renderChart,
 }: {
   /** Used for the modal's accessibility label and dialog header */
-  title:        string;
+  title: string;
   /** Render the chart with a given height. Called twice: once for the inline
    *  card (default height) and once for the modal (taller). Should be cheap;
    *  the chart components themselves cache their option. */
-  renderChart:  (height: number) => React.ReactNode;
+  renderChart: (height: number) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -1613,19 +1624,19 @@ function ConfirmModal({
   open, title, message, confirmLabel = "Confirm", cancelLabel = "Cancel",
   onResult,
 }: {
-  open:         boolean;
-  title:        string;
-  message:      string;
+  open: boolean;
+  title: string;
+  message: string;
   confirmLabel?: string;
-  cancelLabel?:  string;
-  onResult:     (result: boolean) => void;
+  cancelLabel?: string;
+  onResult: (result: boolean) => void;
 }) {
   // Esc to cancel — only when open
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onResult(false);
-      if (e.key === "Enter")  onResult(true);
+      if (e.key === "Enter") onResult(true);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);

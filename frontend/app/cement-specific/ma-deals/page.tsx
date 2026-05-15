@@ -281,20 +281,17 @@ export default function MaDealsPage() {
         <div style={{ flex: 1, minWidth: 0, display: "flex", gap: 16 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
 
-            {/* Summary KPI strip */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+            {/* KPI strip */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
               {[
-                { label: "Total Deals", value: totalDeals.toLocaleString() },
-                { label: "Total Value", value: `$${totalValue.toFixed(1)}B` },
-                { label: "Years", value: `${yearMin} – ${yearMax}` },
-              ].map(kpi => (
-                <div key={kpi.label} style={{
-                  background: "#fff", border: "1px solid #e9ecef", borderRadius: 8,
-                  padding: "8px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-                  flex: 1, textAlign: "center",
-                }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{kpi.value}</div>
-                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{kpi.label}</div>
+                { label: "Total Deals", value: totalDeals.toLocaleString(), sub: `Cement M&A deals · ${yearMin}–${yearMax}`, color: "#E11C2A" },
+                { label: "Total Value", value: `$${totalValue.toFixed(1)}B`, sub: "Cumulative deal value in selected period", color: "#2563eb" },
+                { label: "Year Range", value: `${yearMin} – ${yearMax}`, sub: "Active filter range", color: "#059669" },
+              ].map(k => (
+                <div key={k.label} style={{ background: "#fff", border: "1px solid #e9ecef", borderRadius: 10, padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: k.color, marginBottom: 4 }}>{k.value}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#1e293b", marginBottom: 3 }}>{k.label}</div>
+                  <div style={{ fontSize: 10, color: "#94a3b8" }}>{k.sub}</div>
                 </div>
               ))}
             </div>

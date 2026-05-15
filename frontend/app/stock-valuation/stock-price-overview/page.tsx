@@ -12,32 +12,32 @@ import type { StockPriceData } from "@/lib/types";
 
 function cagrColor(v: number | null | undefined): string {
   if (v == null) return "#64748b";
-  if (v > 0.05)  return "#16a34a";
-  if (v > 0)     return "#2d8a4e";
+  if (v > 0.05) return "#16a34a";
+  if (v > 0) return "#2d8a4e";
   if (v < -0.02) return BAIN_RED;
   return "#64748b";
 }
 
 function cagrBg(v: number | null | undefined): string {
   if (v == null) return "transparent";
-  if (v > 0)     return "rgba(22,163,74,0.08)";
+  if (v > 0) return "rgba(22,163,74,0.08)";
   if (v < -0.02) return "rgba(230,0,0,0.07)";
   return "rgba(100,116,139,0.08)";
 }
 
 export default function StockPriceOverviewPage() {
-  const [years,       setYears]       = useState<number[]>([]);
-  const [countries,   setCountries]   = useState<string[]>([]);
-  const [companies,   setCompanies]   = useState<string[]>([]);
-  const [endYear,     setEndYear]     = useState(2025);
-  const [windowYrs,   setWindowYrs]   = useState(1);
-  const [country,     setCountry]     = useState("All countries");
-  const [mainCo,      setMainCo]      = useState("Holcim AG");
-  const [compareCos,  setCompareCos]  = useState<string[]>(["CRH plc"]);
-  const [data,        setData]        = useState<StockPriceData | null>(null);
-  const [loading,     setLoading]     = useState(false);
-  const [exporting,   setExporting]   = useState(false);
-  const [chartCtx,    setChartCtx]    = useState<Record<string, unknown>>({});
+  const [years, setYears] = useState<number[]>([]);
+  const [countries, setCountries] = useState<string[]>([]);
+  const [companies, setCompanies] = useState<string[]>([]);
+  const [endYear, setEndYear] = useState(2025);
+  const [windowYrs, setWindowYrs] = useState(1);
+  const [country, setCountry] = useState("All countries");
+  const [mainCo, setMainCo] = useState("Holcim AG");
+  const [compareCos, setCompareCos] = useState<string[]>(["CRH plc"]);
+  const [data, setData] = useState<StockPriceData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [chartCtx, setChartCtx] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
     getStockPricesMeta().then((r) => {
@@ -81,7 +81,7 @@ export default function StockPriceOverviewPage() {
     const rows: string[] = ["Company,Date,Price,Indexed"];
     data.dates.forEach((date, i) => {
       Object.entries(data.series).forEach(([co, vals]) => {
-        const idx   = vals[i];
+        const idx = vals[i];
         const price = data.raw_prices[co]?.[i];
         if (idx != null) rows.push(`"${co}",${date},${price ?? ""},${idx}`);
       });
@@ -191,17 +191,6 @@ export default function StockPriceOverviewPage() {
         <div style={{ flex: 1, minWidth: 0, display: "flex", gap: 16 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
 
-            {/* Toolbar */}
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-              <ChartActions
-                onCsv={downloadCsv}
-                onPpt={exportPpt}
-                csvDisabled={!data}
-                pptDisabled={!data}
-                pptLoading={exporting}
-              />
-            </div>
-
             {/* Chart card */}
             <div style={{
               background: "#ffffff",
@@ -210,7 +199,7 @@ export default function StockPriceOverviewPage() {
               padding: 16,
               boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
             }}>
-                            {/* Chart title */}
+              {/* Chart title */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", fontFamily: "Arial, Helvetica, sans-serif" }}>
@@ -220,6 +209,14 @@ export default function StockPriceOverviewPage() {
                     Stock price performance (rebased to 100)
                   </div>
                 </div>
+                <ChartActions
+                  onCsv={downloadCsv}
+                  onPpt={exportPpt}
+                  csvDisabled={!data}
+                  pptDisabled={!data}
+                  pptLoading={exporting}
+                  showPpt={true}
+                />
               </div>
               {loading ? (
                 <div style={{

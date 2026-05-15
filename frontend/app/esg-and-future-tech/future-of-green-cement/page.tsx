@@ -32,7 +32,7 @@ function KpiTile({
 }) {
   const accentColor =
     accent === "future" ? BAIN_RED :
-    accent === "neutral" ? "#0f172a" : "#0f172a";
+      accent === "neutral" ? "#0f172a" : "#0f172a";
   return (
     <div style={{
       flex: 1, minWidth: 0,
@@ -117,30 +117,30 @@ export default function FutureOfGreenCementPage() {
   const [meta, setMeta] = useState<GreenMeta | null>(null);
 
   // Filters
-  const [regions,   setRegions]   = useState<string[]>([]);
+  const [regions, setRegions] = useState<string[]>([]);
   const [countries, setCountries] = useState<string[]>([]);
   const [companies, setCompanies] = useState<string[]>([]);
   const [techTypes, setTechTypes] = useState<string[]>([]);
-  const [statuses,  setStatuses]  = useState<string[]>([]);
+  const [statuses, setStatuses] = useState<string[]>([]);
 
   // Scoped companies dropdown
-  const [scopedCompanies,    setScopedCompanies]    = useState<string[]>([]);
-  const [companiesLoading,   setCompaniesLoading]   = useState(false);
+  const [scopedCompanies, setScopedCompanies] = useState<string[]>([]);
+  const [companiesLoading, setCompaniesLoading] = useState(false);
 
   // Chart-level toggles
   const [scatterGroupBy, setScatterGroupBy] = useState<"company" | "region">("region");
-  const [mixGroupBy,     setMixGroupBy]     = useState<"region" | "company">("region");
+  const [mixGroupBy, setMixGroupBy] = useState<"region" | "company">("region");
 
   // Data
-  const [kpis,        setKpis]        = useState<GreenKpis | null>(null);
-  const [mapData,     setMapData]     = useState<GreenMapData | null>(null);
+  const [kpis, setKpis] = useState<GreenKpis | null>(null);
+  const [mapData, setMapData] = useState<GreenMapData | null>(null);
   const [scatterData, setScatterData] = useState<GreenScatterData | null>(null);
-  const [mixData,     setMixData]     = useState<GreenCapacityMixData | null>(null);
+  const [mixData, setMixData] = useState<GreenCapacityMixData | null>(null);
   const [heatmapData, setHeatmapData] = useState<GreenHeatmapData | null>(null);
 
   // UI
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // ── Load meta once ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -173,7 +173,7 @@ export default function FutureOfGreenCementPage() {
   useEffect(() => {
     setCompaniesLoading(true);
     getGreenCompanies(
-      regions.length   ? regions   : null,
+      regions.length ? regions : null,
       countries.length ? countries : null,
     )
       .then(r => {
@@ -189,10 +189,10 @@ export default function FutureOfGreenCementPage() {
   // basePayload: hard filters for KPIs, hero map, executive insight strip.
   // These narrow strictly to whatever the user selected.
   const basePayload = useMemo(() => ({
-    regions:    regions.length   ? regions   : null,
-    countries:  countries.length ? countries : null,
-    companies:  companies.length ? companies : null,
-    statuses:   statuses.length  ? statuses  : null,
+    regions: regions.length ? regions : null,
+    countries: countries.length ? countries : null,
+    companies: companies.length ? companies : null,
+    statuses: statuses.length ? statuses : null,
     tech_types: techTypes.length ? techTypes : null,
   }), [regions, countries, companies, statuses, techTypes]);
 
@@ -236,14 +236,14 @@ export default function FutureOfGreenCementPage() {
     const widenForCompany = companies.length > 0 && hasOtherScope;
 
     return {
-      regions:             regions.length   ? regions   : null,
-      countries:           countries.length ? countries : null,
+      regions: regions.length ? regions : null,
+      countries: countries.length ? countries : null,
       // When widening for company: drop company from the data filter so the
       // backend returns all plants in the broader scope; pass the company
       // name as highlight_companies instead. Otherwise keep it as a hard filter.
-      companies:           widenForCompany ? null : (companies.length ? companies : null),
-      statuses:            statuses.length  ? statuses  : null,
-      tech_types:          techTypes.length ? techTypes : null,
+      companies: widenForCompany ? null : (companies.length ? companies : null),
+      statuses: statuses.length ? statuses : null,
+      tech_types: techTypes.length ? techTypes : null,
       highlight_companies: widenForCompany ? companies : null,
     };
   }, [regions, countries, companies, statuses, techTypes]);
@@ -252,28 +252,28 @@ export default function FutureOfGreenCementPage() {
   const scatterPayload = useMemo<GreenFilterPayload>(() => {
     const payload: GreenFilterPayload = scatterGroupBy === "company" ? {
       // Company tab: Country acts as a hard filter; Company highlights.
-      regions:             widenedRegions,
-      countries:           countries.length ? countries : null,
-      companies:           null,
-      statuses:            statuses.length  ? statuses  : null,
-      tech_types:          techTypes.length ? techTypes : null,
+      regions: widenedRegions,
+      countries: countries.length ? countries : null,
+      companies: null,
+      statuses: statuses.length ? statuses : null,
+      tech_types: techTypes.length ? techTypes : null,
       highlight_countries: null,
       highlight_companies: companies.length ? companies : null,
-      group_by:            "company",
+      group_by: "company",
     } : {
       // Region tab: shows ALL countries in the (widened) region scope. Country
       // is rendered as a highlight only. Company has NO effect on this tab —
       // it doesn't filter data, doesn't highlight anything (companies aren't
       // shown here). This keeps the Region tab a stable comparative view of
       // sibling countries regardless of company selection.
-      regions:             widenedRegions,
-      countries:           null,
-      companies:           null,
-      statuses:            statuses.length  ? statuses  : null,
-      tech_types:          techTypes.length ? techTypes : null,
+      regions: widenedRegions,
+      countries: null,
+      companies: null,
+      statuses: statuses.length ? statuses : null,
+      tech_types: techTypes.length ? techTypes : null,
       highlight_countries: countries.length ? countries : null,
       highlight_companies: null,
-      group_by:            "region",
+      group_by: "region",
     };
     // TEMPORARY: Remove after verifying filter behavior
     if (typeof window !== "undefined") {
@@ -287,40 +287,40 @@ export default function FutureOfGreenCementPage() {
   const mixPayload = useMemo<GreenFilterPayload>(() => {
     if (mixGroupBy === "company") {
       return {
-        regions:             widenedRegions,
-        countries:           countries.length ? countries : null,
-        companies:           null,
-        statuses:            statuses.length  ? statuses  : null,
-        tech_types:          techTypes.length ? techTypes : null,
+        regions: widenedRegions,
+        countries: countries.length ? countries : null,
+        companies: null,
+        statuses: statuses.length ? statuses : null,
+        tech_types: techTypes.length ? techTypes : null,
         highlight_countries: null,
         highlight_companies: companies.length ? companies : null,
-        group_by:            "company",
-        top_n:               9999,   // explicit: never apply backend top-N cap
+        group_by: "company",
+        top_n: 9999,   // explicit: never apply backend top-N cap
       };
     }
     return {
       // Region tab: shows ALL countries in the (widened) region scope.
       // Company has no effect on this tab. Country is rendered as a highlight only.
-      regions:             widenedRegions,
-      countries:           null,
-      companies:           null,
-      statuses:            statuses.length  ? statuses  : null,
-      tech_types:          techTypes.length ? techTypes : null,
+      regions: widenedRegions,
+      countries: null,
+      companies: null,
+      statuses: statuses.length ? statuses : null,
+      tech_types: techTypes.length ? techTypes : null,
       highlight_countries: countries.length ? countries : null,
       highlight_companies: null,
-      group_by:            "region",
-      top_n:               9999,
+      group_by: "region",
+      top_n: 9999,
     };
   }, [mixGroupBy, widenedRegions, countries, companies, statuses, techTypes]);
 
   // Payload for the Heatmap — same as Region tab logic (columns are regions
   // or countries, never companies, so Company filter has no effect here).
   const heatmapPayload = useMemo<GreenFilterPayload>(() => ({
-    regions:             widenedRegions,
-    countries:           null,
-    companies:           null,
-    statuses:            statuses.length  ? statuses  : null,
-    tech_types:          techTypes.length ? techTypes : null,
+    regions: widenedRegions,
+    countries: null,
+    companies: null,
+    statuses: statuses.length ? statuses : null,
+    tech_types: techTypes.length ? techTypes : null,
     highlight_countries: countries.length ? countries : null,
     highlight_companies: null,
   }), [widenedRegions, countries, statuses, techTypes]);
@@ -329,9 +329,9 @@ export default function FutureOfGreenCementPage() {
   // Prefers the narrowest active filter that still reads naturally.
   const scopeLabel = useMemo(() => {
     if (countries.length === 1) return countries[0];
-    if (countries.length > 1)   return `${countries.length} countries`;
-    if (regions.length === 1)   return regions[0];
-    if (regions.length > 1)     return `${regions.length} regions`;
+    if (countries.length > 1) return `${countries.length} countries`;
+    if (regions.length === 1) return regions[0];
+    if (regions.length > 1) return `${regions.length} regions`;
     return "all regions";
   }, [regions, countries]);
 
@@ -377,35 +377,22 @@ export default function FutureOfGreenCementPage() {
   }, [basePayload, mapPayload, scatterPayload, mixPayload, heatmapPayload]);
 
   const kpiStrip = (
-    <div style={{ display: "flex", gap: 12 }}>
-      <KpiTile
-        label="CCUS-Enabled Capacity %"
-        value={fmtNum(kpis?.pct_ccus, 1)}
-        suffix="%"
-        accent="future"
-        sublabel="Plants flagged for CCS/CCUS · share of total cement capacity"
-      />
-      <KpiTile
-        label="Clay Calcination Capacity %"
-        value={fmtNum(kpis?.pct_clay, 1)}
-        suffix="%"
-        accent="future"
-        sublabel="Clay-calcination-enabled plants · share of total cement capacity"
-      />
-      <KpiTile
-        label="Low-Clinker Capacity %"
-        value={fmtNum(kpis?.pct_low_clinker, 1)}
-        suffix="%"
-        accent="future"
-        sublabel="Plants with clinker/cement ratio ≤ 0.85 · share of total"
-      />
-      <KpiTile
-        label="Future-Ready Capacity"
-        value={fmtNum(kpis?.future_ready_cap, 1)}
-        suffix="Mtpa"
-        accent="neutral"
-        sublabel="Plants with CCUS, clay calcination, or low clinker dependency"
-      />
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+      {[
+        { label: "CCUS-Enabled Capacity", value: fmtNum(kpis?.pct_ccus, 1), suffix: "%", sub: "Plants flagged for CCS/CCUS · share of total capacity", color: "#7c3aed" },
+        { label: "Clay Calcination Capacity", value: fmtNum(kpis?.pct_clay, 1), suffix: "%", sub: "Clay-calcination-enabled plants · share of total capacity", color: "#0891b2" },
+        { label: "Low-Clinker Capacity", value: fmtNum(kpis?.pct_low_clinker, 1), suffix: "%", sub: "Plants with clinker/cement ratio ≤ 0.85 · share of total", color: "#d97706" },
+        { label: "Future-Ready Capacity", value: fmtNum(kpis?.future_ready_cap, 1), suffix: "Mtpa", sub: "Plants with CCUS, clay calcination, or low clinker dependency", color: "#059669" },
+      ].map(k => (
+        <div key={k.label} style={{ background: "#fff", border: "1px solid #e9ecef", borderRadius: 10, padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: k.color, marginBottom: 4 }}>
+            {k.value}
+            <span style={{ fontSize: 13, fontWeight: 500, color: k.color, opacity: 0.7, marginLeft: 3 }}>{k.suffix}</span>
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#1e293b", marginBottom: 3 }}>{k.label}</div>
+          <div style={{ fontSize: 10, color: "#94a3b8" }}>{k.sub}</div>
+        </div>
+      ))}
     </div>
   );
 
@@ -583,9 +570,8 @@ export default function FutureOfGreenCementPage() {
             {/* Hero — Green Technology Adoption Map */}
             <ChartCard
               title="Green Technology Adoption Map"
-              subtitle={`Bubble = cement capacity · Color = primary green technology${
-                mapData?.count != null ? ` · ${mapData.count} plants` : ""
-              }`}
+              subtitle={`Bubble = cement capacity · Color = primary green technology${mapData?.count != null ? ` · ${mapData.count} plants` : ""
+                }`}
             >
               {loading && !mapData ? (
                 <LoadingSpinner height={480} />
@@ -622,10 +608,10 @@ export default function FutureOfGreenCementPage() {
                     seriesLabelOverride={
                       scatterGroupBy === "company" && countries.length > 0
                         ? (countries.length === 1
-                            ? countries[0]
-                            : countries.length <= 3
-                              ? countries.join(", ")
-                              : `${countries.length} countries`)
+                          ? countries[0]
+                          : countries.length <= 3
+                            ? countries.join(", ")
+                            : `${countries.length} countries`)
                         : undefined
                     }
                     height={420}

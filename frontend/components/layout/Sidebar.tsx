@@ -147,13 +147,18 @@ export default function Sidebar({ children, title = "Filters" }: Props) {
       minWidth: open ? 228 : 34,
       transition: "width 0.2s ease, min-width 0.2s ease",
       fontFamily: "Arial, Helvetica, sans-serif",
+      // ── Sticky positioning ──────────────────────────
+      position: "sticky",
+      top: 68,                          // navbar height (52px) + 16px gap
+      alignSelf: "flex-start",          // don't stretch to full column height
+      maxHeight: "calc(100vh - 84px)",  // cap height to viewport
     }}>
       <div style={{
         background: "#ffffff",
         border: "1px solid #e9ecef",
         borderRadius: 10,
         overflow: "hidden",
-        height: "100%",
+        maxHeight: "calc(100vh - 84px)", // match outer cap
         boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
         display: "flex",
         flexDirection: "column",
@@ -169,7 +174,6 @@ export default function Sidebar({ children, title = "Filters" }: Props) {
           flexShrink: 0,
           gap: 8,
         }}>
-          {/* Funnel icon */}
           {open && (
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
               stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -239,6 +243,8 @@ export default function Sidebar({ children, title = "Filters" }: Props) {
             gap: 16,
             overflowY: "auto",
             flex: 1,
+            scrollbarWidth: "thin",
+            scrollbarColor: "#e2e8f0 transparent",
           }}>
             {children}
           </div>
