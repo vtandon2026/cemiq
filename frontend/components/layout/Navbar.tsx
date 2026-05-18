@@ -347,6 +347,7 @@ export default function Navbar() {
           gap: 8px;
           margin-left: auto;
           flex-shrink: 0;
+          padding-left: 16px;  /* ← add this for breathing room */
         }
         .nav-status {
           display: flex;
@@ -480,10 +481,10 @@ export default function Navbar() {
 
           {/* Right actions */}
           <div className="nav-actions">
-            <div className="nav-status">
+            {/* <div className="nav-status">
               <span className="nav-status-dot" />
               Live
-            </div>
+            </div> */}
             <Link
               href="/deck-builder"
               className={`nav-deck-btn ${isActive("/deck-builder") ? "active" : ""}`}
