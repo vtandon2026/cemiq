@@ -1,45 +1,58 @@
 """
 routers/transition_readiness.py
 /transition-readiness/* endpoints
+Uses the same ResponseCache + lru_cache pattern as green_future.py.
 """
 from __future__ import annotations
+import functools
 from typing import List, Optional
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
+from services.cache_utils import ResponseCache
 
 router = APIRouter()
-_executor = ThreadPoolExecutor(max_workers=4)
+_cache = ResponseCache(maxsize=128, ttl_seconds=1800)
+
 
 def _get_df():
     from services.cement_capacity_loader import get_gem_df
     return get_gem_df()
 
 
+# ── Meta ──────────────────────────────────────────────────────────────────────
 @router.get("/meta")
+@functools.lru_cache(maxsize=1)
 def meta():
     from services.transition_readiness_loader import REGION_MAP
     df = _get_df()
-    regions   = sorted(set(REGION_MAP.values()))
-    statuses  = sorted(df["Operating status"].dropna().unique().tolist())
+    regions  = sorted(set(REGION_MAP.values()))
+    statuses = sorted(df["Operating status"].dropna().unique().tolist())
     return {"regions": regions, "statuses": statuses}
 
 
-class MatrixRequest(BaseModel):
-    group_by:     str = "company"
+# ── Common filter model ───────────────────────────────────────────────────────
+class TransitionFilters(BaseModel):
+    group_by:     str            = "company"
     statuses:     Optional[List[str]] = None
     regions:      Optional[List[str]] = None
     countries:    Optional[List[str]] = None
-    min_capacity: float = 1.0
+    min_capacity: float          = 1.0
 
 
+# ── Individual endpoints (kept for backwards compat) ─────────────────────────
 @router.post("/matrix")
-def matrix(req: MatrixRequest):
+def matrix(req: TransitionFilters):
     from services.transition_readiness_loader import compute_matrix
-    df   = _get_df()
-    data = compute_matrix(df, req.group_by, req.statuses, req.regions, req.countries, req.min_capacity)
-    return {"data": data}
+    def _compute():
+        return {"data": compute_matrix(
+            _get_df(), req.group_by, req.statuses,
+            req.regions, req.countries, req.min_capacity
+        )}
+    key = ResponseCache.make_key("tr_matrix", req.model_dump(mode="json"))
+    try:
+        return _cache.get_or_set(key, _compute)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 class HeatmapRequest(BaseModel):
@@ -49,9 +62,13 @@ class HeatmapRequest(BaseModel):
 @router.post("/heatmap")
 def heatmap(req: HeatmapRequest):
     from services.transition_readiness_loader import compute_heatmap
-    df   = _get_df()
-    data = compute_heatmap(df, req.statuses)
-    return {"data": data}
+    def _compute():
+        return {"data": compute_heatmap(_get_df(), req.statuses)}
+    key = ResponseCache.make_key("tr_heatmap", req.model_dump(mode="json"))
+    try:
+        return _cache.get_or_set(key, _compute)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 class KpiRequest(BaseModel):
@@ -63,30 +80,29 @@ class KpiRequest(BaseModel):
 @router.post("/kpis")
 def kpis(req: KpiRequest):
     from services.transition_readiness_loader import compute_kpis
-    df   = _get_df()
-    data = compute_kpis(df, req.statuses, req.regions, req.countries)
-    return data
+    def _compute():
+        return compute_kpis(_get_df(), req.statuses, req.regions, req.countries)
+    key = ResponseCache.make_key("tr_kpis", req.model_dump(mode="json"))
+    try:
+        return _cache.get_or_set(key, _compute)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-class AllRequest(BaseModel):
-    group_by:     str = "company"
-    statuses:     Optional[List[str]] = None
-    regions:      Optional[List[str]] = None
-    countries:    Optional[List[str]] = None
-    min_capacity: float = 1.0
-
-
+# ── /all — single endpoint, shared _prep_df cache hit ─────────────────────────
 @router.post("/all")
-def all_data(req: AllRequest):
-    """Single endpoint that returns matrix + heatmap + kpis in one call."""
+def all_data(req: TransitionFilters):
+    """Returns matrix + heatmap + kpis in one call. All three share _prep_df cache."""
     from services.transition_readiness_loader import compute_matrix, compute_heatmap, compute_kpis
-    df = _get_df()
-    # All three share the same _prep_df cache hit after the first call
-    matrix_data  = compute_matrix(df, req.group_by, req.statuses, req.regions, req.countries, req.min_capacity)
-    heatmap_data = compute_heatmap(df, req.statuses)
-    kpis_data    = compute_kpis(df, req.statuses, req.regions, req.countries)
-    return {
-        "matrix":  matrix_data,
-        "heatmap": heatmap_data,
-        "kpis":    kpis_data,
-    }
+    def _compute():
+        df = _get_df()
+        return {
+            "matrix":  compute_matrix(df, req.group_by, req.statuses, req.regions, req.countries, req.min_capacity),
+            "heatmap": compute_heatmap(df, req.statuses),
+            "kpis":    compute_kpis(df, req.statuses, req.regions, req.countries),
+        }
+    key = ResponseCache.make_key("tr_all", req.model_dump(mode="json"))
+    try:
+        return _cache.get_or_set(key, _compute)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -72,10 +72,12 @@ def _yn(val: str) -> float:
     return 0.0
 
 # ── Cache the expensive prep so it only runs once per unique status filter ────
+# Uses a simple dict cache keyed by (statuses_tuple) — same pattern as green_future_loader.
+# TTL is handled at the router level via ResponseCache; here we just avoid
+# re-running the expensive vectorized prep within the same server session.
 _prep_cache: dict = {}
 
 def _prep_df(df: pd.DataFrame, statuses: list[str] | None = None) -> pd.DataFrame:
-    # Cache key based on statuses tuple
     cache_key = tuple(sorted(statuses)) if statuses else "all"
     if cache_key in _prep_cache:
         return _prep_cache[cache_key]

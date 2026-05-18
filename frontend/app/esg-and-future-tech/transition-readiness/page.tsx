@@ -213,7 +213,7 @@ export default function TransitionReadinessPage() {
             </div>
 
             {/* Heatmap + Alt Fuel */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+            {/* <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
               <div style={{ background: "#fff", border: "1px solid #e9ecef", borderRadius: 10, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>Technology Adoption by Region</div>
                 <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 12 }}>% of capacity enabled per technology</div>
@@ -224,8 +224,15 @@ export default function TransitionReadinessPage() {
                 <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 12 }}>Top 20 by alt fuel % of capacity</div>
                 <AltFuelChart data={matrixData} height={280} />
               </div>
-            </div>
+            </div> */}
 
+            {/* Heatmap full width */}
+            <div style={{ background: "#fff", border: "1px solid #e9ecef", borderRadius: 10, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)", marginBottom: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>Technology Adoption by Region</div>
+              <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 12 }}>% of capacity enabled per technology</div>
+              <TechAdoptionHeatmap data={heatmapData} />
+            </div>
+            
             {/* CCUS + Clay */}
             <div style={{ background: "#fff", border: "1px solid #e9ecef", borderRadius: 10, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)", marginBottom: 14 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>CCUS & Clay Calcination Adoption</div>
