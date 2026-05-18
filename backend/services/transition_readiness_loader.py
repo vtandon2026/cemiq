@@ -1,13 +1,26 @@
 """
 services/transition_readiness_loader.py
 Computes transition readiness and carbon exposure scores from GEM tracker data.
+Uses _yes_no_to_bool from carbon_problem_loader for consistent flag parsing,
+and the comprehensive _REGION_MAP from green_future_loader for consistent
+region assignment across both ESG pages.
 """
 from __future__ import annotations
 import re
 import pandas as pd
 import numpy as np
 from typing import Optional
-from functools import lru_cache
+
+# ── Reuse the better flag parser from sibling loader ─────────────────────────
+from services.carbon_problem_loader import _yes_no_to_bool
+from services.green_future_loader import _REGION_MAP as _GREEN_REGION_MAP
+
+# Build our own region map: same as green_future but remap "South America"
+# → "Latin America" to preserve the existing Latin America heatmap column.
+_REGION_MAP = {
+    k: ("Latin America" if v == "South America" else v)
+    for k, v in _GREEN_REGION_MAP.items()
+}
 
 _CAP_COL     = "Cement Capacity (millions metric tonnes per annum)"
 _COUNTRY_COL = "Country/Area"
@@ -20,44 +33,9 @@ _ALT_COL     = "Alternative Fuel"
 _CCUS_COL    = "CCS/CCUS"
 _CLAY_COL    = "Clay Calcination"
 
-REGION_MAP = {
-    "Germany": "Europe", "France": "Europe", "United Kingdom": "Europe",
-    "Italy": "Europe", "Spain": "Europe", "Poland": "Europe",
-    "Netherlands": "Europe", "Belgium": "Europe", "Austria": "Europe",
-    "Switzerland": "Europe", "Sweden": "Europe", "Norway": "Europe",
-    "Denmark": "Europe", "Finland": "Europe", "Portugal": "Europe",
-    "Greece": "Europe", "Czech Republic": "Europe", "Romania": "Europe",
-    "Hungary": "Europe", "Slovakia": "Europe", "Croatia": "Europe",
-    "Bulgaria": "Europe", "Slovenia": "Europe", "Serbia": "Europe",
-    "Ukraine": "Europe", "Russia": "Europe", "Belarus": "Europe",
-    "Turkey": "Europe",
-    "United States": "North America", "United States of America": "North America",
-    "Canada": "North America", "Mexico": "North America",
-    "China": "China",
-    "India": "APAC", "Japan": "APAC", "South Korea": "APAC",
-    "Australia": "APAC", "Indonesia": "APAC", "Thailand": "APAC",
-    "Vietnam": "APAC", "Malaysia": "APAC", "Philippines": "APAC",
-    "Pakistan": "APAC", "Bangladesh": "APAC", "Sri Lanka": "APAC",
-    "Taiwan": "APAC", "Singapore": "APAC", "New Zealand": "APAC",
-    "Cambodia": "APAC", "Myanmar": "APAC", "Mongolia": "APAC",
-    "Kazakhstan": "APAC", "Uzbekistan": "APAC", "Azerbaijan": "APAC",
-    "Egypt": "MEA", "Nigeria": "MEA", "South Africa": "MEA",
-    "Morocco": "MEA", "Algeria": "MEA", "Kenya": "MEA",
-    "Ethiopia": "MEA", "Tanzania": "MEA", "Ghana": "MEA",
-    "Angola": "MEA", "Mozambique": "MEA", "Zambia": "MEA",
-    "Cameroon": "MEA", "Tunisia": "MEA",
-    "Saudi Arabia": "MEA", "United Arab Emirates": "MEA", "Iran": "MEA",
-    "Iraq": "MEA", "Kuwait": "MEA", "Qatar": "MEA",
-    "Bahrain": "MEA", "Oman": "MEA", "Israel": "MEA",
-    "Brazil": "Latin America", "Argentina": "Latin America",
-    "Colombia": "Latin America", "Peru": "Latin America",
-    "Chile": "Latin America", "Bolivia": "Latin America",
-    "Ecuador": "Latin America", "Uruguay": "Latin America",
-    "Panama": "Latin America", "Dominican Republic": "Latin America",
-}
+# Keep REGION_MAP as an alias for backwards compat (used by router /meta)
+REGION_MAP = _REGION_MAP
 
-def _get_region(country: str) -> str:
-    return REGION_MAP.get(country, "Other")
 
 def _parse_owner(raw: str) -> str:
     if not raw or str(raw).strip().lower() in ("nan", "n/a", "unknown", ""):
@@ -66,15 +44,16 @@ def _parse_owner(raw: str) -> str:
     first = re.sub(r"\s*\[\d+\.?\d*%?\]", "", first).strip()
     return first or "Unknown"
 
-def _yn(val: str) -> float:
-    v = str(val).strip().lower()
-    if v == "yes": return 1.0
+
+def _yn_float(val) -> float:
+    """Convert yes/no to 1.0/0.0 using the robust _yes_no_to_bool parser."""
+    result = _yes_no_to_bool(val)
+    if result is True:
+        return 1.0
     return 0.0
 
-# ── Cache the expensive prep so it only runs once per unique status filter ────
-# Uses a simple dict cache keyed by (statuses_tuple) — same pattern as green_future_loader.
-# TTL is handled at the router level via ResponseCache; here we just avoid
-# re-running the expensive vectorized prep within the same server session.
+
+# ── Cache the expensive prep ──────────────────────────────────────────────────
 _prep_cache: dict = {}
 
 def _prep_df(df: pd.DataFrame, statuses: list[str] | None = None) -> pd.DataFrame:
@@ -92,22 +71,22 @@ def _prep_df(df: pd.DataFrame, statuses: list[str] | None = None) -> pd.DataFram
     fdf[_CAP_COL] = pd.to_numeric(fdf[_CAP_COL], errors="coerce")
     fdf = fdf[fdf[_CAP_COL] > 0].copy()
 
-    # Vectorized operations — much faster than apply()
     fdf["_owner"]  = fdf[_OWNER_COL].astype(str).apply(_parse_owner)
-    fdf["_region"] = fdf[_COUNTRY_COL].astype(str).map(REGION_MAP).fillna("Other")
+    fdf["_region"] = fdf[_COUNTRY_COL].astype(str).map(_REGION_MAP).fillna("Other")
 
-    prod_lower = fdf[_TYPE_COL].astype(str).str.lower()
+    prod_lower  = fdf[_TYPE_COL].astype(str).str.lower()
     plant_lower = fdf[_PLANT_COL].astype(str).str.lower()
-    alt_lower  = fdf[_ALT_COL].astype(str).str.strip().str.lower()
-    ccus_lower = fdf[_CCUS_COL].astype(str).str.strip().str.lower()
-    clay_lower = fdf[_CLAY_COL].astype(str).str.strip().str.lower()
 
     fdf["_is_wet"]        = prod_lower.str.contains("wet", na=False).astype(float)
     fdf["_is_integrated"] = plant_lower.str.contains("integrated", na=False).astype(float)
     fdf["_is_dry"]        = prod_lower.str.contains("dry", na=False).astype(float)
-    fdf["_alt_fuel"]      = (alt_lower == "yes").astype(float)
-    fdf["_ccus"]          = (ccus_lower == "yes").astype(float)
-    fdf["_clay"]          = (clay_lower == "yes").astype(float)
+
+    # ── Use _yes_no_to_bool for robust flag parsing ───────────────────────────
+    # Handles "Yes", "YES", "yes", "Y", "y", trailing spaces, None, NaN
+    # Returns True/False/None — convert to 1.0/0.0 for vectorized arithmetic
+    fdf["_alt_fuel"] = fdf[_ALT_COL].apply(_yn_float)
+    fdf["_ccus"]     = fdf[_CCUS_COL].apply(_yn_float)
+    fdf["_clay"]     = fdf[_CLAY_COL].apply(_yn_float)
 
     start_year = pd.to_numeric(
         fdf[_START_COL].astype(str).str[:4], errors="coerce"
@@ -123,7 +102,6 @@ def _score_group(grp: pd.DataFrame) -> dict:
     if cap == 0:
         return {}
 
-    # Vectorized weighted shares
     w = grp[_CAP_COL]
     wet_share   = (grp["_is_wet"]        * w).sum() / cap
     dry_share   = (grp["_is_dry"]        * w).sum() / cap
@@ -186,24 +164,52 @@ def compute_matrix(
     return sorted(rows, key=lambda r: r["total_capacity"], reverse=True)
 
 
+HEATMAP_REGIONS = ["Europe", "North America", "China", "APAC", "MEA", "Latin America"]
+
+HEATMAP_TECHS = [
+    {"value": "alt_fuel", "label": "Alternative Fuel"},
+    {"value": "ccus",     "label": "CCUS"},
+    {"value": "clay",     "label": "Clay Calcination"},
+]
+
 def compute_heatmap(
     df: pd.DataFrame,
     statuses: list[str] | None = None,
-) -> list[dict]:
+) -> dict:
+    """Returns GreenHeatmapData-compatible shape so AdoptionHeatmap can be used directly."""
     fdf = _prep_df(df, statuses)
-    regions = ["Europe", "North America", "China", "APAC", "MEA", "Latin America"]
-    techs   = ["alt_fuel", "ccus", "clay"]
-    rows = []
-    for tech in techs:
-        col = f"_{tech}"
-        row = {"technology": tech}
-        for reg in regions:
+    cells = []
+    for tech in HEATMAP_TECHS:
+        col = f"_{tech['value']}"
+        for reg in HEATMAP_REGIONS:
             rdf = fdf[fdf["_region"] == reg]
-            cap = rdf[_CAP_COL].sum()
-            val = ((rdf[col] * rdf[_CAP_COL]).sum() / cap * 100) if cap > 0 else 0
-            row[reg] = round(val, 1)
-        rows.append(row)
-    return rows
+            total_cap = float(rdf[_CAP_COL].sum())
+            if total_cap <= 0:
+                cells.append({
+                    "tech":        tech["value"],
+                    "tech_label":  tech["label"],
+                    "region":      reg,
+                    "value":       None,
+                    "cap":         0.0,
+                    "highlighted": False,
+                })
+                continue
+            enabled_cap = float((rdf[col] * rdf[_CAP_COL]).sum())
+            cells.append({
+                "tech":        tech["value"],
+                "tech_label":  tech["label"],
+                "region":      reg,
+                "value":       round(enabled_cap / total_cap * 100, 1),
+                "cap":         round(enabled_cap, 2),
+                "highlighted": False,
+            })
+    return {
+        "data":             cells,
+        "regions":          HEATMAP_REGIONS,
+        "techs":            HEATMAP_TECHS,
+        "unit":             "% of regional capacity",
+        "highlighted_cols": [],
+    }
 
 
 def compute_kpis(

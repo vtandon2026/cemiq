@@ -9,16 +9,16 @@ import SegmentedControl from "@/components/ui/SegmentedControl";
 import GreenTechMap from "@/components/charts/GreenTechMap";
 import ClinkerVsTechScatter from "@/components/charts/ClinkerVsTechScatter";
 import FutureCapacityMixBar from "@/components/charts/FutureCapacityMixBar";
-import TechAdoptionHeatmap from "@/components/charts/AdoptionHeatmap";
+// import AdoptionHeatmap from "@/components/charts/AdoptionHeatmap";
 import {
   getGreenMeta, getGreenCompanies, getGreenKpis, getGreenMap,
-  getGreenScatter, getGreenCapacityMix, getGreenHeatmap,
+  getGreenScatter, getGreenCapacityMix,
 } from "@/lib/api";
 import type { GreenFilterPayload } from "@/lib/api";
 import { BAIN_RED } from "@/lib/chartHelpers";
 import type {
   GreenMeta, GreenKpis, GreenMapData, GreenScatterData,
-  GreenCapacityMixData, GreenHeatmapData,
+  GreenCapacityMixData,
 } from "@/lib/types";
 
 const F = "Arial, Helvetica, sans-serif";
@@ -136,7 +136,7 @@ export default function FutureOfGreenCementPage() {
   const [mapData, setMapData] = useState<GreenMapData | null>(null);
   const [scatterData, setScatterData] = useState<GreenScatterData | null>(null);
   const [mixData, setMixData] = useState<GreenCapacityMixData | null>(null);
-  const [heatmapData, setHeatmapData] = useState<GreenHeatmapData | null>(null);
+  // const [heatmapData, setHeatmapData] = useState<GreenHeatmapData | null>(null);
 
   // UI
   const [loading, setLoading] = useState(false);
@@ -315,15 +315,15 @@ export default function FutureOfGreenCementPage() {
 
   // Payload for the Heatmap — same as Region tab logic (columns are regions
   // or countries, never companies, so Company filter has no effect here).
-  const heatmapPayload = useMemo<GreenFilterPayload>(() => ({
-    regions: widenedRegions,
-    countries: null,
-    companies: null,
-    statuses: statuses.length ? statuses : null,
-    tech_types: techTypes.length ? techTypes : null,
-    highlight_countries: countries.length ? countries : null,
-    highlight_companies: null,
-  }), [widenedRegions, countries, statuses, techTypes]);
+  // const heatmapPayload = useMemo<GreenFilterPayload>(() => ({
+  //   regions: widenedRegions,
+  //   countries: null,
+  //   companies: null,
+  //   statuses: statuses.length ? statuses : null,
+  //   tech_types: techTypes.length ? techTypes : null,
+  //   highlight_countries: countries.length ? countries : null,
+  //   highlight_companies: null,
+  // }), [widenedRegions, countries, statuses, techTypes]);
 
   // Compact scope label for the executive insight strip.
   // Prefers the narrowest active filter that still reads naturally.
@@ -344,14 +344,14 @@ export default function FutureOfGreenCementPage() {
       getGreenMap(mapPayload),
       getGreenScatter(scatterPayload),
       getGreenCapacityMix(mixPayload),
-      getGreenHeatmap(heatmapPayload),
+      // getGreenHeatmap(heatmapPayload),
     ])
-      .then(([k, m, s, mix, h]) => {
+      .then(([k, m, s, mix]) => {
         setKpis(k.data);
         setMapData(m.data);
         setScatterData(s.data);
         setMixData(mix.data);
-        setHeatmapData(h.data);
+        // setHeatmapData(h.data);
         // TEMPORARY DIAG: confirm what backend returned for scatter + mix
         if (typeof window !== "undefined") {
           // eslint-disable-next-line no-console
@@ -374,7 +374,7 @@ export default function FutureOfGreenCementPage() {
         setError(e.message);
         setLoading(false);
       });
-  }, [basePayload, mapPayload, scatterPayload, mixPayload, heatmapPayload]);
+  }, [basePayload, mapPayload, scatterPayload, mixPayload]);
 
   const kpiStrip = (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
@@ -581,7 +581,7 @@ export default function FutureOfGreenCementPage() {
             </ChartCard>
 
             {/* Two-up: Scatter + Stacked Bar */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            {/* <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <ChartCard
                 title="Clinker Dependency vs Future-Tech Adoption"
                 subtitle="X = clinker / cement · Y = adoption score · Bubble = cement capacity"
@@ -643,23 +643,84 @@ export default function FutureOfGreenCementPage() {
                   />
                 )}
               </ChartCard>
-            </div>
+            </div> */}
 
-            {/* Heatmap */}
+            {/* Scatter — full width */}
             <ChartCard
+              title="Clinker Dependency vs Future-Tech Adoption"
+              subtitle="X = clinker / cement · Y = adoption score · Bubble = cement capacity"
+              right={
+                <SegmentedControl
+                  options={["Region", "Company"]}
+                  value={scatterGroupBy === "company" ? "Company" : "Region"}
+                  onChange={(v) => setScatterGroupBy(v === "Company" ? "company" : "region")}
+                  size="sm"
+                />
+              }
+            >
+              {loading && !scatterData ? (
+                <LoadingSpinner height={480} />
+              ) : (
+                <ClinkerVsTechScatter
+                  key={`scatter|${scatterGroupBy}|${(regions ?? []).join(",")}|${(countries ?? []).join(",")}|${(companies ?? []).join(",")}`}
+                  data={scatterData?.data ?? []}
+                  groupBy={scatterGroupBy}
+                  showCountry={regions.length > 0}
+                  seriesLabelOverride={
+                    scatterGroupBy === "company" && countries.length > 0
+                      ? (countries.length === 1
+                        ? countries[0]
+                        : countries.length <= 3
+                          ? countries.join(", ")
+                          : `${countries.length} countries`)
+                      : undefined
+                  }
+                  height={480}
+                />
+              )}
+            </ChartCard>
+
+            {/* Capacity Mix — full width below scatter */}
+            <ChartCard
+              title="Future Capacity Mix"
+              subtitle="Legacy · Transitioning · Future-Ready (100% stacked)"
+              right={
+                <SegmentedControl
+                  options={["Region", "Company"]}
+                  value={mixGroupBy === "region" ? "Region" : "Company"}
+                  onChange={(v) => setMixGroupBy(v === "Region" ? "region" : "company")}
+                  size="sm"
+                />
+              }
+            >
+              {loading && !mixData ? (
+                <LoadingSpinner height={420} />
+              ) : (
+                <FutureCapacityMixBar
+                  key={`mix|${mixGroupBy}|${(regions ?? []).join(",")}|${(countries ?? []).join(",")}|${(companies ?? []).join(",")}`}
+                  data={mixData?.data ?? []}
+                  groupBy={mixGroupBy}
+                  showCountry={regions.length > 0}
+                  height={420}
+                />
+              )}
+            </ChartCard>
+            
+            {/* Heatmap */}
+            {/* <ChartCard
               title="Future Technology Adoption by Region"
               subtitle="% of regional cement capacity enabled with each green technology"
             >
               {loading && !heatmapData ? (
                 <LoadingSpinner height={280} />
               ) : (
-                <TechAdoptionHeatmap
+                <AdoptionHeatmap
                   key={`heat|${(regions ?? []).join(",")}|${(countries ?? []).join(",")}|${(companies ?? []).join(",")}`}
                   data={heatmapData}
                   height={280}
                 />
               )}
-            </ChartCard>
+            </ChartCard> */}
           </div>
 
           {/* ── Chat ──────────────────────────────────────────────────────── */}

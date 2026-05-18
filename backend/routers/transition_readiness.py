@@ -63,7 +63,7 @@ class HeatmapRequest(BaseModel):
 def heatmap(req: HeatmapRequest):
     from services.transition_readiness_loader import compute_heatmap
     def _compute():
-        return {"data": compute_heatmap(_get_df(), req.statuses)}
+        return compute_heatmap(_get_df(), req.statuses)
     key = ResponseCache.make_key("tr_heatmap", req.model_dump(mode="json"))
     try:
         return _cache.get_or_set(key, _compute)
